@@ -156,11 +156,11 @@ The migration is complete and the application is ready for production deployment
 
 ### Build changes (pom.xml)
 
-- Parent `spring-boot-starter-parent` upgraded from 2.7.18 to 3.3.13.
+- Parent `spring-boot-starter-parent` upgraded from 2.7.18 to 3.5.15.
 - `java.version`, `maven.compiler.release`, and maven-compiler-plugin `<release>` set to 21.
 - maven-enforcer-plugin `requireJavaVersion` updated to `[21,)`.
 - `org.springdoc:springdoc-openapi-ui:1.6.15` replaced with
-  `org.springdoc:springdoc-openapi-starter-webmvc-ui:2.6.0`.
+  `org.springdoc:springdoc-openapi-starter-webmvc-ui:2.8.10`.
 - `org.glassfish.jaxb:jaxb-runtime` removed (Spring Boot 3 manages JAXB 4.x; unused in src).
 
 ### Code changes

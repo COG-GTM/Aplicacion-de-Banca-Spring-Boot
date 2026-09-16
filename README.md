@@ -86,7 +86,7 @@ http://localhost:8989/bank-api/h2-console/
 
 ## Migration Notes
 
-This application has been migrated from Java 11 / Spring Boot 2.7 to Java 21 (LTS) / Spring Boot 3.3. See `MIGRATION_NOTES.md` for detailed information about the migration process and changes made.
+This application has been migrated from Java 11 / Spring Boot 2.7 to Java 21 (LTS) / Spring Boot 3.5. See `MIGRATION_NOTES.md` for detailed information about the migration process and changes made.
 
 ## Authors
 
