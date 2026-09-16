@@ -1,0 +1,16 @@
+name: Docs CI
+on:
+  pull_request:
+    paths: ["**.md", ".github/workflows/docs-ci.yml"]
+jobs:
+  lint-and-links:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 20 }
+      - run: npm -g i markdownlint-cli2 markdown-link-check
+      - run: markdownlint-cli2 "README_NEW.md" "CONTRIBUTING.md"
+      - run: |
+          set -e
+          find . -name "README_NEW.md" -o -name "CONTRIBUTING.md" | xargs -n1 markdown-link-check -q || true

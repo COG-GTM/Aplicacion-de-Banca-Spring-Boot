@@ -1,0 +1,9 @@
+# Local development only: enables the H2 web console at /bank-api/h2-console.
+# The console still requires HTTP Basic authentication (see SecurityConfig)
+# and only accepts connections from localhost.
+spring:
+  h2:
+    console:
+      enabled: true
+      settings:
+        web-allow-others: false

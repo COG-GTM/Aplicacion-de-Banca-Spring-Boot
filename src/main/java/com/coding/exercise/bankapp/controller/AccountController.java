@@ -17,24 +17,24 @@ import com.coding.exercise.bankapp.domain.TransactionDetails;
 import com.coding.exercise.bankapp.domain.TransferDetails;
 import com.coding.exercise.bankapp.service.BankingServiceImpl;
 
-import io.swagger.annotations.Api;
-import io.swagger.annotations.ApiOperation;
-import io.swagger.annotations.ApiResponse;
-import io.swagger.annotations.ApiResponses;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import io.swagger.v3.oas.annotations.responses.ApiResponses;
+import io.swagger.v3.oas.annotations.tags.Tag;
 
 @RestController
 @RequestMapping("accounts")
-@Api(tags = { "Accounts and Transactions REST endpoints" })
+@Tag(name = "Accounts and Transactions REST endpoints")
 public class AccountController {
 
 	@Autowired
 	private BankingServiceImpl bankingService;
 
 	@GetMapping(path = "/{accountNumber}")
-	@ApiOperation(value = "Get account details", notes = "Find account details by account number")
-	@ApiResponses(value = { @ApiResponse(code = 200, message = "Success"),
-			@ApiResponse(code = 400, message = "Bad Request"),
-			@ApiResponse(code = 500, message = "Internal Server Error") })
+	@Operation(summary = "Get account details", description = "Find account details by account number")
+	@ApiResponses(value = { @ApiResponse(responseCode = "200", description = "Success"),
+			@ApiResponse(responseCode = "400", description = "Bad Request"),
+			@ApiResponse(responseCode = "500", description = "Internal Server Error") })
 
 	public ResponseEntity<Object> getByAccountNumber(@PathVariable Long accountNumber) {
 
@@ -42,10 +42,10 @@ public class AccountController {
 	}
 
 	@PostMapping(path = "/add/{customerNumber}")
-	@ApiOperation(value = "Add a new account", notes = "Create an new account for existing customer.")
-	@ApiResponses(value = { @ApiResponse(code = 200, message = "Success"),
-			@ApiResponse(code = 400, message = "Bad Request"),
-			@ApiResponse(code = 500, message = "Internal Server Error") })
+	@Operation(summary = "Add a new account", description = "Create an new account for existing customer.")
+	@ApiResponses(value = { @ApiResponse(responseCode = "200", description = "Success"),
+			@ApiResponse(responseCode = "400", description = "Bad Request"),
+			@ApiResponse(responseCode = "500", description = "Internal Server Error") })
 
 	public ResponseEntity<Object> addNewAccount(@RequestBody AccountInformation accountInformation,
 			@PathVariable Long customerNumber) {
@@ -54,10 +54,10 @@ public class AccountController {
 	}
 
 	@PutMapping(path = "/transfer/{customerNumber}")
-	@ApiOperation(value = "Transfer funds between accounts", notes = "Transfer funds between accounts.")
-	@ApiResponses(value = { @ApiResponse(code = 200, message = "Success", response = Object.class),
-			@ApiResponse(code = 400, message = "Bad Request"),
-			@ApiResponse(code = 500, message = "Internal Server Error") })
+	@Operation(summary = "Transfer funds between accounts", description = "Transfer funds between accounts.")
+	@ApiResponses(value = { @ApiResponse(responseCode = "200", description = "Success"),
+			@ApiResponse(responseCode = "400", description = "Bad Request"),
+			@ApiResponse(responseCode = "500", description = "Internal Server Error") })
 
 	public ResponseEntity<Object> transferDetails(@RequestBody TransferDetails transferDetails,
 			@PathVariable Long customerNumber) {
@@ -66,10 +66,10 @@ public class AccountController {
 	}
 
 	@GetMapping(path = "/transactions/{accountNumber}")
-	@ApiOperation(value = "Get all transactions", notes = "Get all Transactions by account number")
-	@ApiResponses(value = { @ApiResponse(code = 200, message = "Success"),
-			@ApiResponse(code = 400, message = "Bad Request"),
-			@ApiResponse(code = 500, message = "Internal Server Error") })
+	@Operation(summary = "Get all transactions", description = "Get all Transactions by account number")
+	@ApiResponses(value = { @ApiResponse(responseCode = "200", description = "Success"),
+			@ApiResponse(responseCode = "400", description = "Bad Request"),
+			@ApiResponse(responseCode = "500", description = "Internal Server Error") })
 
 	public List<TransactionDetails> getTransactionByAccountNumber(@PathVariable Long accountNumber) {
 
