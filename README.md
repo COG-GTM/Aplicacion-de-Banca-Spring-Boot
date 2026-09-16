@@ -72,7 +72,13 @@ http://localhost:8989/bank-api/swagger-ui.html
 Make sure to use jdbc:h2:mem:testdb as your jdbc url. If you intend to you use custom database name, please
 define datasource properties in application.yml
 
+The H2 web console is disabled by default. To use it during local development, start the
+application with the `local` profile; the console requires the configured HTTP Basic
+credentials and only accepts connections from localhost.
+
 ```
+./mvnw spring-boot:run -Dspring-boot.run.profiles=local
+
 http://localhost:8989/bank-api/h2-console/
 
 ```
