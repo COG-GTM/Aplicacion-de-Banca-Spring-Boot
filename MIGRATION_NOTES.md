@@ -151,3 +151,33 @@ If rollback to Java 8 is needed:
 - Migration notes created
 
 The migration is complete and the application is ready for production deployment on Java 11.
+
+## Java 11 to 21 / Spring Boot 3.x Migration Notes
+
+### Build changes (pom.xml)
+
+- Parent `spring-boot-starter-parent` upgraded from 2.7.18 to 3.5.15.
+- `java.version`, `maven.compiler.release`, and maven-compiler-plugin `<release>` set to 21.
+- maven-enforcer-plugin `requireJavaVersion` updated to `[21,)`.
+- `org.springdoc:springdoc-openapi-ui:1.6.15` replaced with
+  `org.springdoc:springdoc-openapi-starter-webmvc-ui:2.8.10`.
+- `org.glassfish.jaxb:jaxb-runtime` removed (Spring Boot 3 manages JAXB 4.x; unused in src).
+
+### Code changes
+
+- `javax.persistence.*` imports migrated to `jakarta.persistence.*` in all model entities
+  (Jakarta EE namespace change required by Spring Boot 3 / Hibernate 6).
+- `SecurityConfig` rewritten from `WebSecurityConfigurerAdapter` (removed in Spring Security 6)
+  to a `SecurityFilterChain` bean using `requestMatchers` and lambda DSL.
+  `httpBasic` is enabled explicitly so `spring.security.user` credentials keep working.
+- `io.swagger.v3` annotations unchanged; compatible with springdoc 2.x.
+
+### CI changes
+
+- `.github/workflows/ci.yml` now sets up Temurin JDK 21.
+
+### Verification
+
+- `mvn -B -e clean verify` passes on JDK 21 (compilation + `BankingApplicationTests`).
+- Smoke test: Swagger UI returns 401 anonymously / 200 with `bankapp:changeit`;
+  `/bank-api/h2-console/` returns 200.
