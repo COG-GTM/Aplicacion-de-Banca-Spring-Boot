@@ -1,0 +1,23 @@
+== Swagger UI / OpenAPI / H2 console
+PASS GET /swagger-ui/index.html -> HTTP 200 
+PASS GET /v3/api-docs -> HTTP 200 
+PASS GET /h2-console/ -> HTTP 200 
+PASS GET /actuator/health -> HTTP 200 {"status":"UP"}
+== Customer create
+PASS POST /customers/add -> HTTP 201 New Customer created successfully.
+FAIL GET /customers/1001 -> expected HTTP 200, got 500 {"timestamp":"2026-09-23T08:14:31.716+00:00","status":500,"error":"Internal Server Error","path":"/bank-api/customers/1001"}
+FAIL GET /customers/all -> expected HTTP 200, got 500 
+== Account create (x2)
+FAIL POST /accounts/add/1001 (acct 5001) -> expected HTTP 201, got 500 {"timestamp":"2026-09-23T08:14:31.745+00:00","status":500,"error":"Internal Server Error","path":"/bank-api/accounts/add/1001"}
+FAIL POST /accounts/add/1001 (acct 5002) -> expected HTTP 201, got 500 {"timestamp":"2026-09-23T08:14:31.756+00:00","status":500,"error":"Internal Server Error","path":"/bank-api/accounts/add/1001"}
+FAIL GET /accounts/5001 -> expected HTTP 302, got 404 Account Number 5001 not found.
+== Transfer 250.0 from 5001 to 5002
+FAIL PUT /accounts/transfer/1001 -> expected HTTP 200, got 500 {"timestamp":"2026-09-23T08:14:31.777+00:00","status":500,"error":"Internal Server Error","path":"/bank-api/accounts/transfer/1001"}
+FAIL GET /accounts/5001 after -> expected HTTP 302, got 404 Account Number 5001 not found.
+FAIL GET /accounts/5002 after -> expected HTTP 302, got 404 Account Number 5002 not found.
+FAIL balance 5001 != 750.0
+FAIL balance 5002 != 350.0
+PASS GET /accounts/transactions/5001 -> HTTP 200 []
+== Insufficient funds (negative case)
+FAIL PUT /accounts/transfer (insufficient) -> expected HTTP 400, got 500 {"timestamp":"2026-09-23T08:14:31.813+00:00","status":500,"error":"Internal Server Error","path":"/bank-api/accounts/transfer/1001"}
+SOME CHECKS FAILED

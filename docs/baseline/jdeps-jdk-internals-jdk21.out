@@ -1,0 +1,67 @@
+logback-classic-1.2.12.jar -> JDK removed internal API
+   ch.qos.logback.classic.spi.PackagingDataCalculator -> sun.reflect.Reflection                             JDK removed internal API
+Warning: JDK internal APIs are unsupported and private to JDK implementation that are
+subject to be removed or changed incompatibly and could break your application.
+Please modify your code to eliminate dependence on any JDK internal APIs.
+For the most recent update on JDK internal API replacements, please check:
+https://wiki.openjdk.org/display/JDK8/Java+Dependency+Analysis+Tool
+JDK Internal API                         Suggested Replacement
+----------------                         ---------------------
+sun.reflect.Reflection                   Use java.lang.StackWalker @since 9
+aspectjweaver-1.9.7.jar -> jdk.unsupported
+   org.aspectj.weaver.loadtime.ClassLoaderWeavingAdaptor -> sun.misc.Unsafe                                    JDK internal API (jdk.unsupported)
+Warning: JDK internal APIs are unsupported and private to JDK implementation that are
+subject to be removed or changed incompatibly and could break your application.
+Please modify your code to eliminate dependence on any JDK internal APIs.
+For the most recent update on JDK internal API replacements, please check:
+https://wiki.openjdk.org/display/JDK8/Java+Dependency+Analysis+Tool
+JDK Internal API                         Suggested Replacement
+----------------                         ---------------------
+sun.misc.Unsafe                          See https://openjdk.org/jeps/260
+lombok
+ [file://~/.m2/repository/org/projectlombok/lombok/1.18.30/lombok-1.18.30.jar]
+   requires mandated java.base
+   requires java.compiler
+   requires java.instrument
+   requires jdk.unsupported
+lombok -> JDK removed internal API
+lombok -> jdk.unsupported
+   lombok.javac.apt.Processor                         -> com.sun.tools.javac.processing.JavacFiler          JDK removed internal API
+   lombok.javac.apt.Processor                         -> com.sun.tools.javac.processing.JavacProcessingEnvironment JDK removed internal API
+   lombok.javac.apt.Processor                         -> com.sun.tools.javac.util.Context                   JDK removed internal API
+   lombok.javac.apt.Processor                         -> com.sun.tools.javac.util.Options                   JDK removed internal API
+   lombok.launch.AnnotationProcessorHider$AnnotationProcessor -> sun.misc.Unsafe                                    JDK internal API (jdk.unsupported)
+Warning: JDK internal APIs are unsupported and private to JDK implementation that are
+subject to be removed or changed incompatibly and could break your application.
+Please modify your code to eliminate dependence on any JDK internal APIs.
+For the most recent update on JDK internal API replacements, please check:
+https://wiki.openjdk.org/display/JDK8/Java+Dependency+Analysis+Tool
+JDK Internal API                         Suggested Replacement
+----------------                         ---------------------
+com.sun.tools.javac.processing.JavacFiler Use javax.tools and javax.lang.model @since 1.6
+com.sun.tools.javac.processing.JavacProcessingEnvironment Use javax.tools and javax.lang.model @since 1.6
+com.sun.tools.javac.util.Context         Use javax.tools and javax.lang.model @since 1.6
+com.sun.tools.javac.util.Options         Use javax.tools and javax.lang.model @since 1.6
+sun.misc.Unsafe                          See https://openjdk.org/jeps/260
+objenesis-3.2.jar -> jdk.unsupported
+   org.objenesis.instantiator.sun.UnsafeFactoryInstantiator -> sun.misc.Unsafe                                    JDK internal API (jdk.unsupported)
+   org.objenesis.instantiator.util.UnsafeUtils        -> sun.misc.Unsafe                                    JDK internal API (jdk.unsupported)
+Warning: JDK internal APIs are unsupported and private to JDK implementation that are
+subject to be removed or changed incompatibly and could break your application.
+Please modify your code to eliminate dependence on any JDK internal APIs.
+For the most recent update on JDK internal API replacements, please check:
+https://wiki.openjdk.org/display/JDK8/Java+Dependency+Analysis+Tool
+JDK Internal API                         Suggested Replacement
+----------------                         ---------------------
+sun.misc.Unsafe                          See https://openjdk.org/jeps/260
+spring-core-5.3.31.jar -> jdk.unsupported
+   org.springframework.objenesis.instantiator.sun.UnsafeFactoryInstantiator -> sun.misc.Unsafe                                    JDK internal API (jdk.unsupported)
+   org.springframework.objenesis.instantiator.util.UnsafeUtils -> sun.misc.Unsafe                                    JDK internal API (jdk.unsupported)
+Warning: JDK internal APIs are unsupported and private to JDK implementation that are
+subject to be removed or changed incompatibly and could break your application.
+Please modify your code to eliminate dependence on any JDK internal APIs.
+For the most recent update on JDK internal API replacements, please check:
+https://wiki.openjdk.org/display/JDK8/Java+Dependency+Analysis+Tool
+JDK Internal API                         Suggested Replacement
+----------------                         ---------------------
+sun.misc.Unsafe                          See https://openjdk.org/jeps/260
