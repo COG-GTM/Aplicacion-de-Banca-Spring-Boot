@@ -337,8 +337,92 @@ spring.main.allow-circular-references=true
 | 5 | Integration testing | 4-8 hours |
 | **Total** | | **14-28 hours** |
 
+## Java 21 + Spring Boot 4.x Compatibility Checklist (ticket UNT2-2, plan step s1.2)
+
+Scan performed 2026-09-23 on the UNT2-1 baseline commit (`9f865f8`, Java 11 / Boot 2.7.18, pom unchanged)
+with OpenJDK 21.0.12.1 (`/usr/lib/jvm/java-21-openjdk-amd64`) and Maven wrapper 3.8.8.
+Target versions were read from `spring-boot-dependencies:4.1.1` (latest Boot GA tag `v4.1.1`) and
+`springdoc-openapi:3.1.1` (latest springdoc tag, built against Boot 4.1.0).
+
+### What happens today when the baseline runs on JDK 21
+
+| Check | Result | Evidence |
+|-------|--------|----------|
+| `JAVA_HOME=jdk21 ./mvnw -B clean verify` | **BUILD SUCCESS**, 1 test, 0 failures, 6.9 s | [`baseline/verify-jdk21.out`](baseline/verify-jdk21.out) |
+| Compiler warnings | Only `WebSecurityConfigurerAdapter ... has been deprecated` (5x, `SecurityConfig.java:16`) and `-Xlint` "No processor claimed any of these annotations" | same file |
+| Lombok 1.18.30 on javac 21 | Works (annotation processing succeeded, no `IllegalAccessError`) | same file |
+| Hibernate 5.6.15 on JDK 21 | Context loads, no complaint | same file |
+| `java -jar target/bank-app-1.0.0.jar` (JDK 21) | `Started BankingApplication in 3.235 seconds`; `/actuator/health`, `/swagger-ui/index.html`, `/v3/api-docs`, `/h2-console/` all 200 | manual smoke, same shapes as the JDK 11 baseline |
+| `jdeprscan --release 21 --class-path <runtime cp> target/classes` | **No deprecated JDK API usage** in application classes | [`baseline/jdeprscan-jdk21.out`](baseline/jdeprscan-jdk21.out) |
+| `jdeps --jdk-internals target/classes` | **No JDK-internal usage** in application classes | same run |
+| `jdeps --jdk-internals --multi-release 21 <each runtime jar>` | `logback-classic 1.2.12` -> **removed** `sun.reflect.Reflection`; `lombok 1.18.30` -> `com.sun.tools.javac.*` + `sun.misc.Unsafe`; `aspectjweaver 1.9.7`, `objenesis 3.2`, `spring-core 5.3.31` -> `sun.misc.Unsafe` (jdk.unsupported) | [`baseline/jdeps-jdk-internals-jdk21.out`](baseline/jdeps-jdk-internals-jdk21.out) |
+
+Notes on the scan itself: `jdeprscan target/classes` without `--class-path` reports "cannot find class"
+for every Spring type (that is a resolution error, not a finding); `jdeps -cp <whole classpath>` aborts with
+`Module java.annotation not found, required by org.apache.tomcat.embed.core`, so jars must be scanned
+one at a time with `--multi-release 21`. Both details matter if phase 4 re-runs the scan in CI.
+
+Conclusion for phase 2 (PR 1): the JDK 21 toolchain switch on Boot 2.7.18 is expected to be a
+green build with **no source changes**; only `pom.xml` (`java.version`/`release` 21, enforcer
+`[21,)`), `.github/workflows/ci.yml` (`java-version: '21'`) and the wrapper need to move. The
+JDK-internal findings above are all in libraries that Boot 4 replaces (see table), so nothing is
+actionable in phase 2.
+
+### Dependency / API checklist for Boot 4.1.1 (phases 3-5, PR 2)
+
+Managed versions (from `spring-boot-dependencies-4.1.1.pom`): Spring Framework 7.0.9,
+Spring Security 7.1.1, Spring Data 2026.0.1, Hibernate ORM 7.4.5.Final, Jakarta Persistence 3.2.0,
+Jakarta Annotation 3.0.0, Jackson 3.1.5 (`jackson-bom`), Tomcat 11.0.24, HikariCP 7.0.2, H2 2.4.240,
+Lombok 1.18.46, JUnit Jupiter 6.0.3, Mockito 5.23.0, AssertJ 3.27.7, Logback 1.5.38, Micrometer 1.17.1,
+Jakarta XML Bind 4.0.5 / GlassFish JAXB 4.0.9.
+
+| # | Today (2.7.18 / JDK 11) | Java 21 + Boot 4.1.1 replacement | Impact / action | Phase |
+|---|-------------------------|----------------------------------|-----------------|-------|
+| 1 | `spring-boot-starter-parent:2.7.18` | `spring-boot-starter-parent:4.1.1` | Boot 4 requires Java 17+, runs on 21. Also drop the explicit `maven-compiler-plugin 3.11.0`, `surefire/failsafe 3.2.5` pins from `pluginManagement` (the parent manages newer ones) or re-verify them. | 3 |
+| 2 | `<java.version>11`, `<release>11`, enforcer `[11,)` | `21` / `[21,)` | Phase 2 change; keep in phase 3. | 2 |
+| 3 | `spring-boot-starter-web` | `spring-boot-starter-webmvc` | Boot 4 renamed the MVC starter; `spring-boot-starter-web` still resolves as a deprecated alias but the plan is to use the new name. Pulls Tomcat 11 (Servlet 6.1, `jakarta.servlet`). | 3 |
+| 4 | Jackson 2.13.5 (`com.fasterxml.jackson`) via web starter | Jackson 3.1.5 (`tools.jackson.*`) via `spring-boot-starter-jackson` (included by `webmvc`) | Application code has **no** Jackson imports (checked: no `com.fasterxml` in `src/`), so the package rename is transparent. Behaviour changes to verify in phase 4: Jackson 3 defaults (`java.util.Date` written as ISO-8601 string instead of epoch millis, `FAIL_ON_UNKNOWN_PROPERTIES=false`) affect `AccountInformation.dateOpened`, `TransactionDetails.transactionDate`, `CustomerDetails.createDateTime/updateDateTime`. Jackson 2 stays available as `spring-boot-jackson2` only if a consumer needs the old wire format. | 3-4 |
+| 5 | `spring-boot-starter-test` (single bundle) | `spring-boot-starter-test` (core: JUnit 6, AssertJ, Mockito, Spring Test) **+** per-technology test starters: `spring-boot-starter-webmvc-test` (MockMvc/`@WebMvcTest`), `spring-boot-starter-data-jpa-test` (`@DataJpaTest`), `spring-boot-starter-security-test`, `spring-boot-starter-actuator-test`. `spring-boot-starter-test-classic` exists as a one-shot bundle. | Current `BankingApplicationTests` (`@SpringBootTest` + `contextLoads`) only needs the core starter. Phase 4 tests that use MockMvc or `@DataJpaTest` must add the matching test starter. JUnit Jupiter 6.0.3: JUnit 4 (`junit:junit` 4.13.2) no longer transitively present. | 4 |
+| 6 | `org.springframework.security:spring-security-test` (test) | `spring-boot-starter-security-test` (or keep `spring-security-test` 7.1.1 managed) | Prefer the Boot starter for consistency with row 5. | 4 |
+| 7 | `SecurityConfig extends WebSecurityConfigurerAdapter`, `authorizeRequests().antMatchers(...)`, `csrf().disable()`, `headers().frameOptions().disable()` | `@Bean SecurityFilterChain` with `http.authorizeHttpRequests(a -> a.requestMatchers("/", "/h2-console/**").permitAll().anyRequest().permitAll())`, `csrf(AbstractHttpConfigurer::disable)`, `headers(h -> h.frameOptions(FrameOptionsConfig::disable))` (or `PathPatternRequestMatcher`) | `WebSecurityConfigurerAdapter` and `antMatchers` were **removed** in Security 6/7; the `and()`/non-lambda DSL was removed in 7. **Must preserve the no-auth baseline** (every endpoint currently answers anonymously). | 3 |
+| 8 | `javax.persistence.*` in `model/{Account,Address,BankInfo,Contact,Customer,CustomerAccountXRef,Transaction}.java` (7 entity files, 47 imports; the ticket says 6, there are 7) | `jakarta.persistence.*` (Jakarta Persistence 3.2) | Mechanical rename; no `javax.*` imports anywhere else in `src/` (no `javax.validation`, `javax.annotation`, `javax.servlet`). `@Temporal(TemporalType.TIME)` on `java.util.Date` fields is still valid in JPA 3.2 but Hibernate 7 recommends `java.time`; keep as-is in phase 3, consider `java.time` in phase 5. | 3 |
+| 9 | Hibernate 5.6.15 (`UUID` on H2 -> `BINARY(255)`) | Hibernate ORM 7.4.5 (`UUID` -> native H2 `UUID` column) | Baseline defect from UNT-2-1 (`GET /customers/**`, `POST /accounts/add/**`, `PUT /accounts/transfer/**` -> 500 with `EntityNotFoundException ... Contact with id ...`) is **expected to be fixed by the Hibernate 7 UUID mapping**; phase 4 must prove it with `docs/baseline/e2e-roundtrip.sh` exiting 0 and record it as a behaviour change. Also: Hibernate 7 `@GeneratedValue(strategy = AUTO)` on `UUID` ids uses `UuidGenerator` (fine); `hibernate.dialect` auto-detected, do not pin `H2Dialect`. | 3-4 |
+| 10 | `spring-boot-devtools:2.7.18` (runtime) | `spring-boot-devtools:4.1.1` (still exists, same coordinates) | Keep; only relevant for local restart. Note it is excluded from the repackaged jar automatically. | 3 |
+| 11 | `com.h2database:h2:2.1.214` (runtime) | `h2:2.4.240` managed by Boot 4 | Already on the 2.x SQL/`BINARY` semantics, so no further SQL breakage expected; the `BINARY(255)` problem disappears with row 9. H2 console: Boot 4 moved the auto-configuration into the `spring-boot-h2console` module, which is **not** pulled in by `spring-boot-starter-data-jpa`/`-jdbc` (checked the 4.1.1 starter poms) — add `org.springframework.boot:spring-boot-h2console` (runtime, version managed) or `/bank-api/h2-console/` silently disappears even with `spring.h2.console.enabled=true`. `SecurityConfig` must keep `permitAll` + frame-options disabled for it. | 3-4 |
+| 12 | `org.projectlombok:lombok:1.18.30` (optional) | `lombok:1.18.46` managed by Boot 4 parent (remove nothing; version comes from the parent) | 1.18.30 already compiles on JDK 21 (verified); 1.18.46 removes the `com.sun.tools.javac` warnings on jdeps. Used in 14 files (`@Data/@Getter/@Setter/@Builder/@AllArgsConstructor/@NoArgsConstructor`). If the explicit `maven-compiler-plugin` config is kept, add `annotationProcessorPaths` for lombok as Boot's parent does. | 3 |
+| 13 | `org.springdoc:springdoc-openapi-ui:1.6.15` (explicit version; swagger-ui 4.17.1) | `org.springdoc:springdoc-openapi-starter-webmvc-ui:3.1.1` (swagger-core 2.2.55, swagger-ui 5.32.14; built for Boot 4.1 / Framework 7 / Jackson 3) | springdoc 1.x is Boot 2 / `javax` only; 2.x is Boot 3 only; **3.x is the Boot 4 line**. `ApplicationConfig.customOpenAPI()` (`io.swagger.v3.oas.models.OpenAPI/Info`) and the `@Tag/@Operation/@ApiResponses` annotations in the controllers are unchanged. UI stays at `/bank-api/swagger-ui/index.html`, docs at `/bank-api/v3/api-docs`. | 3 |
+| 14 | `org.glassfish.jaxb:jaxb-runtime:2.3.8` (explicit, compile) + transitive `jakarta.xml.bind-api:2.3.3`, `jakarta.activation-api:1.2.2`, `com.sun.activation:jakarta.activation:1.2.2` | **Remove.** | No `javax.xml.bind`/`jakarta.xml.bind`/`JAXB*` usage anywhere in `src/` (grep). It was added for the Java 8 -> 11 move (Hibernate 5 needed JAXB for `hbm.xml`); Hibernate 7 does not require it and Boot 4 would otherwise want `jaxb-runtime 4.0.9` (`jakarta.xml.bind` 4). Dropping it also removes the `2.3.x javax` jars that would conflict with the Jakarta line. | 3 |
+| 15 | `logback-classic 1.2.12` (removed `sun.reflect.Reflection`), `aspectjweaver 1.9.7`, `objenesis 3.2`, `spring-core 5.3.31` (`sun.misc.Unsafe`) | Logback 1.5.38, AspectJ 1.9.2x, Objenesis 3.4, Spring 7.0.9 — all managed by Boot 4 | The only "removed API" finding on JDK 21 is fixed by the Boot upgrade; the `sun.misc.Unsafe` uses are `jdk.unsupported` and only warn (JEP 471 warnings on 24+, not 21). No action beyond the parent bump. | 3 |
+| 16 | `spring-boot-starter-actuator` | `spring-boot-starter-actuator` (unchanged); tests need `spring-boot-starter-actuator-test` | Boot 4 Actuator: `/actuator/health` path and JSON unchanged; health groups/`management.endpoints.web.exposure` defaults unchanged for this app. | 3 |
+| 17 | `spring-boot-starter-data-jpa`, `spring-boot-starter-security` | same coordinates | Spring Data 2026.0 (`CrudRepository` API unchanged for the 4 repositories); Security 7.1 (see row 7). | 3 |
+| 18 | `application.yml`: `server.servlet.context-path`, `spring.security.user.*`, `spring.h2.console.enabled` | unchanged keys in Boot 4 | `spring.jpa.open-in-view` warning at startup: set `spring.jpa.open-in-view=false` explicitly in phase 5 (behaviour-neutral for this API). Run `spring-boot-properties-migrator` once in phase 3 to confirm no renamed keys. | 3-5 |
+| 19 | `GET /accounts/{accountNumber}` returns **302 FOUND** with a JSON body (`ResponseEntity.status(HttpStatus.FOUND)`) | unchanged | Not a Boot 4 issue, but keep as-is (baseline shape) — only flag if phase 5 decides to fix it. | 5 |
+| 20 | CI `.github/workflows/ci.yml` uses `setup-java` **11** and plain `mvn` | `java-version: '21'`, `./mvnw` | Phase 2 (PR 1). Docs CI (`docs-ci.yml`) lints only `README_NEW.md`/`CONTRIBUTING.md`, not `docs/`. | 2 |
+
+### Refinement of the phase 3-4 tickets from this checklist
+
+- Phase 3 (Boot 4 + Jakarta) is rows 1, 3-4 (dependency side), 7, 8, 10-17: one `pom.xml` rewrite
+  (parent 4.1.1, `webmvc` starter, springdoc 3.1.1, remove `jaxb-runtime`, remove the explicit
+  lombok/springdoc versions, add the per-tech test starters), one `SecurityConfig` rewrite, and a
+  `javax.persistence` -> `jakarta.persistence` sed over `model/`. Expected first-compile failures:
+  only `SecurityConfig` (removed classes) — everything else is a package rename.
+- Phase 4 (runtime fixes + tests) is rows 4, 5-6, 9, 11: prove the UUID/H2 round trip with
+  `docs/baseline/e2e-roundtrip.sh` (exit 0 is the acceptance signal), pin down the Jackson 3 date
+  format for the 4 `java.util.Date` fields (either accept ISO-8601 or configure
+  `spring.jackson.serialization.write-dates-as-timestamps`-equivalent), add MockMvc/`@DataJpaTest`
+  coverage with the new test starters.
+- Phase 5 (docs) also updates `README.md` for Java 21 / Boot 4.1.1 and this file's "Current Project
+  Configuration" table.
+
 ## References
 
+- [Spring Boot 4.0 Release Notes](https://github.com/spring-projects/spring-boot/wiki/Spring-Boot-4.0-Release-Notes)
+- [Spring Boot 4.0 Migration Guide](https://github.com/spring-projects/spring-boot/wiki/Spring-Boot-4.0-Migration-Guide)
+- [Spring Boot 4.1 Release Notes](https://github.com/spring-projects/spring-boot/wiki/Spring-Boot-4.1-Release-Notes)
+- [Spring Security 7.0 Migration](https://docs.spring.io/spring-security/reference/migration/index.html)
+- [Hibernate ORM 7 Migration Guide](https://docs.jboss.org/hibernate/orm/7.0/migration-guide/migration-guide.html)
+- [springdoc-openapi v3 (Spring Boot 4)](https://springdoc.org/)
+- [Jackson 3.0 release notes](https://github.com/FasterXML/jackson/wiki/Jackson-Release-3.0)
 - [Spring Boot 2.1 Release Notes](https://github.com/spring-projects/spring-boot/wiki/Spring-Boot-2.1-Release-Notes)
 - [Spring Boot 2.2 Release Notes](https://github.com/spring-projects/spring-boot/wiki/Spring-Boot-2.2-Release-Notes)
 - [Spring Boot 2.3 Release Notes](https://github.com/spring-projects/spring-boot/wiki/Spring-Boot-2.3-Release-Notes)

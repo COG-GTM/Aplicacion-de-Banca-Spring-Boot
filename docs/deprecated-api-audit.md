@@ -267,6 +267,27 @@ The BankApp codebase is in good condition for Java 11 migration. The application
 4. Run tests and address any issues
 5. Consider Spring Boot upgrade for long-term maintainability
 
+## 10. Addendum: JDK 21 re-scan (ticket UNT2-2, 2026-09-23)
+
+Re-run on the UNT2-1 baseline (`9f865f8`, Boot 2.7.18, pom unchanged) with OpenJDK 21.0.12.1.
+Raw outputs live in `baseline/` (`verify-jdk21.out`, `jdeprscan-jdk21.out`, `jdeps-jdk-internals-jdk21.out`).
+
+| Check | JDK 11 audit (Section 2-3) | JDK 21 re-scan |
+|-------|----------------------------|----------------|
+| `./mvnw -B clean verify` | BUILD SUCCESS | **BUILD SUCCESS** (1 test, 0 failures) — no `--release 21` compile errors |
+| `jdeprscan --release 21 target/classes` | none | **none** (must pass `--class-path` with the runtime classpath, otherwise every Spring type reports "cannot find class") |
+| `jdeps --jdk-internals target/classes` | none | **none** |
+| Removed internal API in dependencies | logback-classic 1.2.3 -> `sun.reflect.Reflection` | still present: **logback-classic 1.2.12** -> `sun.reflect.Reflection` (Boot 2.7 managed version). Gone with Boot 4 (Logback 1.5.38). |
+| `jdk.unsupported` (`sun.misc.Unsafe`) | aspectjweaver, guava, objenesis, spring-core, lombok | aspectjweaver 1.9.7, objenesis 3.2, spring-core 5.3.31, lombok 1.18.30 (guava no longer on the classpath since springdoc replaced Springfox) |
+| `jdk.compiler` internals | lombok 1.18.6 | lombok 1.18.30 -> `com.sun.tools.javac.{processing.JavacFiler,processing.JavacProcessingEnvironment,util.Context,util.Options}`; compiles fine on javac 21, Boot 4 manages 1.18.46 |
+| Deprecated Spring API in app code | `WebSecurityConfigurerAdapter` (Section 3.2.1) | still the only deprecation warning (`SecurityConfig.java:16`, 5x); **removed** in Spring Security 6/7 — must be rewritten as a `SecurityFilterChain` bean in phase 3 |
+| `javax.*` in app code | `javax.persistence` (entities) | unchanged: 47 `javax.persistence.*` imports across the 7 `model/*.java` entities; no other `javax.*` (`validation`, `annotation`, `servlet`, `xml.bind`) anywhere in `src/` |
+| JAXB | transitive, "no action" | explicit `org.glassfish.jaxb:jaxb-runtime:2.3.8` in the pom, **unused by application code** (no `javax.xml.bind`/`JAXB` references) — remove in phase 3 |
+
+Net: nothing in the application code blocks Java 21. Every finding is a library that the Boot 4
+upgrade replaces, or a Spring/Jakarta API that the Boot 4 migration rewrites; the per-dependency
+replacement table is in `spring-boot-compatibility.md` ("Java 21 + Spring Boot 4.x Compatibility Checklist").
+
 ## Appendix A: Tool Versions Used
 
 - jdeps: OpenJDK 17.0.x (for --release 11 analysis)
