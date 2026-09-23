@@ -1,10 +1,11 @@
-# Java 11 Migration - Deprecated API Audit Report
+# Deprecated API Audit Report
 
-**Project:** BankApp (java-migration-8-11)  
-**Audit Date:** December 14, 2025  
-**Current Java Version:** 1.8 (OpenJDK 8u462)  
-**Target Java Version:** 11 (LTS)  
-**Jira Task:** MBA-768
+**Project:** BankApp  
+**Current state:** Java 21 (LTS) / Spring Boot 4.1.1 - see Section 11 for the final status of every
+finding below  
+**Original audit (Sections 1-9):** December 14, 2025, Java 8 (OpenJDK 8u462) -> 11 (LTS),  
+Jira MBA-768  
+**JDK 21 re-scan (Section 10):** 2026-09-23, ticket UNT2-2
 
 ## Executive Summary
 
@@ -287,6 +288,35 @@ Raw outputs live in `baseline/` (`verify-jdk21.out`, `jdeprscan-jdk21.out`, `jde
 Net: nothing in the application code blocks Java 21. Every finding is a library that the Boot 4
 upgrade replaces, or a Spring/Jakarta API that the Boot 4 migration rewrites; the per-dependency
 replacement table is in `spring-boot-compatibility.md` ("Java 21 + Spring Boot 4.x Compatibility Checklist").
+
+## 11. Final status after the Java 21 / Spring Boot 4.1.1 migration (ticket UNT2-13)
+
+- `WebSecurityConfigurerAdapter` (3.2.1, Section 10): **Resolved** - `SecurityConfig` rewritten as a
+  `SecurityFilterChain` bean (Spring Security 7.1.1, lambda DSL, `requestMatchers`). The
+  `-Xlint:all` compile is free of this deprecation warning.
+- `javax.persistence` in entities (Section 10): **Resolved** - 47 imports in 7 `model/*.java`
+  entities renamed to `jakarta.persistence` (Jakarta Persistence 3.2 / Hibernate ORM 7.4.5).
+- Explicit `jaxb-runtime` (1.1, Section 10): **Resolved** - dependency removed; no `javax.xml.bind`
+  / `jakarta.xml.bind` on the compile classpath is required by application code.
+- `logback-classic` -> removed `sun.reflect.Reflection` (2.1): **Resolved** - Boot 4.1.1 manages
+  Logback 1.5.38.
+- `sun.misc.Unsafe` users: aspectjweaver, objenesis, spring-core, lombok (2.2): **Superseded** -
+  Boot 4 manages AspectJ 1.9.2x, Objenesis 3.4, Spring Framework 7.0.9, Lombok 1.18.46. These remain
+  `jdk.unsupported` uses that only warn (JEP 471 warnings start on JDK 24, not 21). Guava is no
+  longer on the classpath.
+- Lombok `com.sun.tools.javac.*` (2.3): **Superseded** - Lombok 1.18.46 (managed) compiles cleanly
+  on javac 21 with `annotationProcessorPaths` declared in the compiler plugin.
+- Springfox (3.2.2): **Resolved** (Java 11 migration) - replaced by springdoc; now
+  `springdoc-openapi-starter-webmvc-ui` 3.1.1 for Boot 4.
+- `jdeprscan` / `jdeps --jdk-internals` on `target/classes` (3.1, Section 10): **Clean** - no
+  deprecated JDK API or JDK-internal usage in application code on JDK 21
+  (`baseline/jdeprscan-jdk21.out`, `baseline/jdeps-jdk-internals-jdk21.out`).
+- Java EE / `javax.*` transitive APIs (1.6, 1.7, 4.2): **Superseded** - Boot 4 is Jakarta EE 11:
+  `jakarta.annotation-api` 3.0.0, `jakarta.persistence-api` 3.2.0, Servlet 6.1 (Tomcat 11). No
+  `javax.*` remains in `src/`.
+
+Nothing in this report is open. New deprecations introduced by the Boot 4 line should be tracked
+in `MIGRATION_NOTES.md` ("Future Considerations") rather than here.
 
 ## Appendix A: Tool Versions Used
 
