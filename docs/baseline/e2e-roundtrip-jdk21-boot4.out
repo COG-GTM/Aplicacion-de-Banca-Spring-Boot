@@ -1,0 +1,23 @@
+== Swagger UI / OpenAPI / H2 console
+PASS GET /swagger-ui/index.html -> HTTP 200 
+PASS GET /v3/api-docs -> HTTP 200 
+PASS GET /h2-console/ -> HTTP 200 
+PASS GET /actuator/health -> HTTP 200 {"groups":["liveness","readiness"],"status":"UP"}
+== Customer create
+PASS POST /customers/add -> HTTP 201 New Customer created successfully.
+PASS GET /customers/1001 -> HTTP 200 {"firstName":"Ada","lastName":"Lovelace","middleName":"K","customerNumber":1001,"status":"Active","customerAddress":{"address1":"1 Main St","address2":"","city":"London","state":"LDN","zip":"E1","country":"UK"},"contactDetails":{"emailId":"ada@example.com","homePhone":"111","workPhone":"222"}}
+PASS GET /customers/all -> HTTP 200 
+== Account create (x2)
+PASS POST /accounts/add/1001 (acct 5001) -> HTTP 201 New Account created successfully.
+PASS POST /accounts/add/1001 (acct 5002) -> HTTP 201 New Account created successfully.
+PASS GET /accounts/5001 -> HTTP 302 {"accountNumber":5001,"bankInformation":{"branchName":"Main","branchCode":10,"branchAddress":{"address1":"2 Bank St","address2":"","city":"London","state":"LDN","zip":"E2","country":"UK"},"routingNumber":123456},"accountStatus":"Active","accountType":"Savings","accountBalance":1000.0,"accountCreated":null}
+== Transfer 250.0 from 5001 to 5002
+PASS PUT /accounts/transfer/1001 -> HTTP 200 Success: Amount transferred for Customer Number 1001
+PASS GET /accounts/5001 after -> HTTP 302 {"accountNumber":5001,"bankInformation":{"branchName":"Main","branchCode":10,"branchAddress":{"address1":"2 Bank St","address2":"","city":"London","state":"LDN","zip":"E2","country":"UK"},"routingNumber":123456},"accountStatus":"Active","accountType":"Savings","accountBalance":750.0,"accountCreated":null}
+PASS GET /accounts/5002 after -> HTTP 302 {"accountNumber":5002,"bankInformation":{"branchName":"Main","branchCode":10,"branchAddress":{"address1":"2 Bank St","address2":"","city":"London","state":"LDN","zip":"E2","country":"UK"},"routingNumber":123456},"accountStatus":"Active","accountType":"Savings","accountBalance":350.0,"accountCreated":null}
+PASS balance 5001 == 750.0
+PASS balance 5002 == 350.0
+PASS GET /accounts/transactions/5001 -> HTTP 200 [{"accountNumber":5001,"txDateTime":"09:01:30","txType":"DEBIT","txAmount":250.0}]
+== Insufficient funds (negative case)
+PASS PUT /accounts/transfer (insufficient) -> HTTP 400 Insufficient Funds.
+ALL PASS

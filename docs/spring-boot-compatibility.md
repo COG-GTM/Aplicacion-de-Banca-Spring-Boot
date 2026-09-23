@@ -1,15 +1,36 @@
-# Spring Boot Compatibility Analysis: Java 11 Migration
+# Spring Boot Compatibility Analysis
 
-## Executive Summary
+## Current Project Configuration (after the Java 21 / Spring Boot 4 migration)
 
-This document analyzes the compatibility of Spring Boot 2.1.4.RELEASE with Java 11 and provides a detailed upgrade path to Spring Boot 2.7.18 (the latest 2.x LTS version). The analysis covers breaking changes, affected dependencies, and recommended migration strategies.
+| Component | Version |
+| --------- | ------- |
+| Java | 21 (`maven.compiler.release` 21, enforcer `[21,)`, Maven wrapper 3.9.16) |
+| Spring Boot | 4.1.1 |
+| Spring Framework | 7.0.9 (managed) |
+| Spring Security | 7.1.1 (managed) |
+| Hibernate ORM | 7.4.5.Final (managed), Jakarta Persistence 3.2 |
+| Jackson | 3.1.5 (managed) |
+| Tomcat | 11.0.24 (managed) |
+| H2 Database | 2.4.240 (managed) |
+| Lombok | 1.18.46 (managed) |
+| springdoc-openapi | `springdoc-openapi-starter-webmvc-ui` 3.1.1 |
+| Tests | JUnit Jupiter 6.0.3, MockMvc via `spring-boot-starter-webmvc-test` |
 
-## Current Project Configuration
+The migration is complete; the outcome is recorded in `MIGRATION_NOTES.md` ("Java 11 to Java 21 /
+Spring Boot 4") and the evidence in `baseline/`. The remainder of this document is the analysis
+that drove the two migrations, kept for history: first the Java 8 -> 11 / Boot 2.1.4 -> 2.7.18
+analysis, then the Java 21 + Boot 4 checklist (with a final-state column added).
 
-The BankApp project currently uses:
+## Part 1 (historical): Java 11 Migration, Spring Boot 2.1.4 -> 2.7.18
 
-| Component | Current Version |
-|-----------|-----------------|
+### Executive Summary
+
+This part analyzes the compatibility of Spring Boot 2.1.4.RELEASE with Java 11 and provides a detailed upgrade path to Spring Boot 2.7.18 (the latest 2.x LTS version). The analysis covers breaking changes, affected dependencies, and recommended migration strategies.
+
+### Project configuration at the time
+
+| Component | Version then |
+| --------- | ------------ |
 | Spring Boot | 2.1.4.RELEASE |
 | Java | 1.8 |
 | Spring Framework | 5.1.6.RELEASE (managed by Spring Boot) |
@@ -38,7 +59,7 @@ Spring Boot 2.1 (released October 2018) was the first version to officially supp
 |--------------|----------------------------|---------------------|
 | Java 11 | 2.1.0.RELEASE | 2.7.18 |
 | Java 17 | 2.5.0.RELEASE | 3.x (requires migration) |
-| Java 21 | 3.1.0 | 3.4.x |
+| Java 21 | 3.1.0 | 4.1.1 (what this project now runs) |
 
 ## Upgrade Path: Spring Boot 2.1.4 to 2.7.18
 
@@ -337,7 +358,23 @@ spring.main.allow-circular-references=true
 | 5 | Integration testing | 4-8 hours |
 | **Total** | | **14-28 hours** |
 
-## Java 21 + Spring Boot 4.x Compatibility Checklist (ticket UNT2-2, plan step s1.2)
+## Part 2: Java 21 + Spring Boot 4.x Compatibility Checklist (ticket UNT2-2, plan step s1.2)
+
+**Final state (UNT2-13):** every row below was applied on the migration branch. Status per row:
+
+| Rows | Outcome |
+|------|---------|
+| 1, 2, 20 | Done - parent 4.1.1, `release` 21 / enforcer `[21,)`, CI on JDK 21; the compiler/surefire/failsafe/javadoc version pins were removed (parent-managed), enforcer 3.5.0 kept |
+| 3, 4 | Done - `spring-boot-starter-webmvc`; Jackson 3 transparent (no app-code Jackson imports), round trip verified with `baseline/e2e-roundtrip.sh` |
+| 5, 6, 16 | Done - `spring-boot-starter-test` + `-webmvc-test` + `-data-jpa-test` + `-security-test`; 12 MockMvc tests added (`BankingApiRegressionTest`, `SecurityConfigTest`). `spring-boot-starter-actuator-test` was not needed |
+| 7 | Done - `SecurityFilterChain` bean, lambda DSL, `requestMatchers`; no-auth behaviour preserved and covered by `SecurityConfigTest` |
+| 8 | Done - 47 `javax.persistence` imports -> `jakarta.persistence` in 7 entities |
+| 9, 11 | Done - UUID ids are native H2 `UUID` (`baseline/h2-column-types-jdk21-boot4.txt`); the baseline 500s are gone (`baseline/e2e-roundtrip-jdk21-boot4.out`, exit 0). `spring-boot-h2console` added; console verified (`baseline/endpoints-jdk21-boot4.md`) |
+| 10, 12, 15, 17 | Done - parent-managed versions, no action beyond the bump |
+| 13 | Done - `springdoc-openapi-starter-webmvc-ui` 3.1.1; Swagger UI and `/v3/api-docs` (OpenAPI 3.1.0) verified |
+| 14 | Done - `jaxb-runtime` removed |
+| 18 | No property changes needed; `spring.jpa.open-in-view=false` left as a follow-up (see `MIGRATION_NOTES.md`, "Future Considerations") |
+| 19 | Kept as-is (302 with JSON body), covered by a regression test |
 
 Scan performed 2026-09-23 on the UNT2-1 baseline commit (`9f865f8`, Java 11 / Boot 2.7.18, pom unchanged)
 with OpenJDK 21.0.12.1 (`/usr/lib/jvm/java-21-openjdk-amd64`) and Maven wrapper 3.8.8.
@@ -436,13 +473,10 @@ Jakarta XML Bind 4.0.5 / GlassFish JAXB 4.0.9.
 
 ## Conclusion
 
-Spring Boot 2.1.4.RELEASE is compatible with Java 11, making the Java version upgrade straightforward. However, upgrading to Spring Boot 2.7.18 is strongly recommended to benefit from security patches, bug fixes, and improved Java 11 support.
-
-The main areas requiring attention during the upgrade are:
-1. Springfox Swagger migration or workaround
-2. H2 database compatibility
-3. Validation starter dependency
-4. Circular reference handling
-5. JUnit 5 test migration
-
-With proper planning and testing, the upgrade can be completed with minimal disruption to the application.
+Both migrations are complete. The project builds and runs on Java 21 with Spring Boot 4.1.1
+(Spring Framework 7, Spring Security 7, Hibernate ORM 7, Jackson 3, Tomcat 11, Jakarta EE
+namespaces). The only behaviour change versus the Java 11 / Boot 2.7.18 baseline is a fix: UUID
+entity ids are now stored as native H2 `UUID` columns, which makes the customer -> account ->
+transfer round trip work end to end (it returned 500 on the baseline). All other request/response
+shapes, Swagger UI, the H2 console and the Actuator health endpoint were verified unchanged, and the
+round trip is now covered by MockMvc tests.

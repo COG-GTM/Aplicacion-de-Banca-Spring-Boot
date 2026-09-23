@@ -1,0 +1,124 @@
+### java -version
+openjdk version "21.0.12.1" 2026-08-18
+OpenJDK Runtime Environment (build 21.0.12.1+1-1-22.04.4-Ubuntu)
+OpenJDK 64-Bit Server VM (build 21.0.12.1+1-1-22.04.4-Ubuntu, mixed mode, sharing)
+
+### startup log
+ :: Spring Boot ::                (v4.1.1)
+2026-09-23T09:05:23.217Z  INFO 4382 --- [           main] o.s.b.h.a.H2ConsoleAutoConfiguration     : H2 console available at '/h2-console'. Database available at 'jdbc:h2:mem:69e02daa-b5e0-4365-8b04-51674581845c'
+2026-09-23T09:05:23.325Z  INFO 4382 --- [           main] o.s.boot.tomcat.TomcatWebServer          : Tomcat started on port 8989 (http) with context path '/bank-api'
+2026-09-23T09:05:23.331Z  INFO 4382 --- [           main] c.c.exercise.bankapp.BankingApplication  : Started BankingApplication in 3.612 seconds (process running for 3.971)
+
+### GET /swagger-ui/index.html
+HTTP 200 content-type=text/html
+
+### GET /v3/api-docs (headers + summary)
+HTTP/1.1 200 
+X-Content-Type-Options: nosniff
+X-XSS-Protection: 0
+Cache-Control: no-cache, no-store, max-age=0, must-revalidate
+Pragma: no-cache
+Expires: 0
+Content-Type: application/json
+Content-Length: 7945
+Date: Wed, 23 Sep 2026 09:05:56 GMT
+
+
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "BANKING APPLICATION REST API",
+    "description": "API for Banking Application.",
+    "version": "1.0.0"
+  },
+  "tags": null,
+  "paths": [
+    "/accounts/add/{customerNumber}",
+    "/accounts/transactions/{accountNumber}",
+    "/accounts/transfer/{customerNumber}",
+    "/accounts/{accountNumber}",
+    "/customers/add",
+    "/customers/all",
+    "/customers/{customerNumber}"
+  ]
+}
+
+### operations by tag
+Accounts and Transactions REST endpoints  GET /accounts/transactions/{accountNumber}  -- Get all transactions
+Accounts and Transactions REST endpoints  GET /accounts/{accountNumber}  -- Get account details
+Accounts and Transactions REST endpoints  POST /accounts/add/{customerNumber}  -- Add a new account
+Accounts and Transactions REST endpoints  PUT /accounts/transfer/{customerNumber}  -- Transfer funds between accounts
+Customer REST endpoints  DELETE /customers/{customerNumber}  -- Delete customer and related accounts
+Customer REST endpoints  GET /customers/all  -- Find all customers
+Customer REST endpoints  GET /customers/{customerNumber}  -- Get customer details
+Customer REST endpoints  POST /customers/add  -- Add a Customer
+Customer REST endpoints  PUT /customers/{customerNumber}  -- Update customer
+
+### GET /h2-console/ (headers)
+HTTP/1.1 200 
+Cache-Control: no-cache
+X-Content-Type-Options: nosniff
+X-XSS-Protection: 0
+Content-Type: text/html
+Content-Length: 938
+Date: Wed, 23 Sep 2026 09:05:56 GMT
+
+
+### H2 console login POST (JDBC URL from startup log: jdbc:h2:mem:69e02daa-b5e0-4365-8b04-51674581845c)
+HTTP/1.1 200 
+Cache-Control: no-cache
+X-Content-Type-Options: nosniff
+X-XSS-Protection: 0
+Content-Type: text/html
+Content-Length: 1463
+Date: Wed, 23 Sep 2026 09:05:56 GMT
+
+login.do body contains frameset: 13
+
+### H2 query via console: SHOW TABLES
+ 
+<!--
+Copyright 2004-2025 H2 Group. Multiple-Licensed under the MPL 2.0,
+and the EPL 1.0 (https://h2database.com/html/license.html).
+Initial Developer: H2 Group
+-->
+ 
+ 
+ 
+ H2 Console 
+ 
+ 
+ 
+ 
+ 
+SHOW TABLES; TABLE_NAME TABLE_SCHEMA ACCOUNT PUBLIC ADDRESS PUBLIC BANK_INFO PUBLIC CONTACT PUBLIC CUSTOMER PUBLIC CUSTOMER_ACCOUNTXREF PUBLIC TRANSACTION PUBLIC (7 rows, 9 ms) 
+ 
+ 
+ 
+
+
+### GET /actuator/health
+HTTP/1.1 200 
+X-Content-Type-Options: nosniff
+X-XSS-Protection: 0
+Cache-Control: no-cache, no-store, max-age=0, must-revalidate
+Pragma: no-cache
+Expires: 0
+Content-Type: application/vnd.spring-boot.actuator.v3+json
+Transfer-Encoding: chunked
+Date: Wed, 23 Sep 2026 09:05:56 GMT
+
+{"groups":["liveness","readiness"],"status":"UP"}
+
+### GET /actuator/health/liveness
+{"status":"UP"}
+
+### GET /actuator/health/readiness
+{"status":"UP"}
+
+### GET /actuator (exposed endpoints)
+[
+  "health",
+  "health-path",
+  "self"
+]
