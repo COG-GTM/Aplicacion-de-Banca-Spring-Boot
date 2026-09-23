@@ -3,7 +3,7 @@ package com.coding.exercise.bankapp.service;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
-import java.util.Optional;
+import java.util.stream.StreamSupport;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
@@ -16,11 +16,7 @@ import com.coding.exercise.bankapp.domain.CustomerDetails;
 import com.coding.exercise.bankapp.domain.TransactionDetails;
 import com.coding.exercise.bankapp.domain.TransferDetails;
 import com.coding.exercise.bankapp.model.Account;
-import com.coding.exercise.bankapp.model.Address;
-import com.coding.exercise.bankapp.model.Contact;
-import com.coding.exercise.bankapp.model.Customer;
 import com.coding.exercise.bankapp.model.CustomerAccountXRef;
-import com.coding.exercise.bankapp.model.Transaction;
 import com.coding.exercise.bankapp.repository.AccountRepository;
 import com.coding.exercise.bankapp.repository.CustomerAccountXRefRepository;
 import com.coding.exercise.bankapp.repository.CustomerRepository;
@@ -49,15 +45,9 @@ public class BankingServiceImpl implements BankingService {
    
     public List<CustomerDetails> findAll() {
     	
-    	List<CustomerDetails> allCustomerDetails = new ArrayList<>();
-
-        Iterable<Customer> customerList = customerRepository.findAll();
-
-        customerList.forEach(customer -> {
-        	allCustomerDetails.add(bankingServiceHelper.convertToCustomerDomain(customer));
-        });
-        
-        return allCustomerDetails;
+        return StreamSupport.stream(customerRepository.findAll().spliterator(), false)
+        		.map(bankingServiceHelper::convertToCustomerDomain)
+        		.toList();
     }
 
     /**
@@ -68,7 +58,7 @@ public class BankingServiceImpl implements BankingService {
      */
 	public ResponseEntity<Object> addCustomer(CustomerDetails customerDetails) {
 		
-		Customer customer = bankingServiceHelper.convertToCustomerEntity(customerDetails);
+		var customer = bankingServiceHelper.convertToCustomerEntity(customerDetails);
 		customer.setCreateDateTime(new Date());
 		customerRepository.save(customer);
 		
@@ -84,7 +74,7 @@ public class BankingServiceImpl implements BankingService {
     
 	public CustomerDetails findByCustomerNumber(Long customerNumber) {
 		
-		Optional<Customer> customerEntityOpt = customerRepository.findByCustomerNumber(customerNumber);
+		var customerEntityOpt = customerRepository.findByCustomerNumber(customerNumber);
 
 		if(customerEntityOpt.isPresent())
 			return bankingServiceHelper.convertToCustomerDomain(customerEntityOpt.get());
@@ -100,14 +90,14 @@ public class BankingServiceImpl implements BankingService {
 	 * @return
 	 */
 	public ResponseEntity<Object> updateCustomer(CustomerDetails customerDetails, Long customerNumber) {
-		Optional<Customer> managedCustomerEntityOpt = customerRepository.findByCustomerNumber(customerNumber);
-		Customer unmanagedCustomerEntity = bankingServiceHelper.convertToCustomerEntity(customerDetails);
+		var managedCustomerEntityOpt = customerRepository.findByCustomerNumber(customerNumber);
+		var unmanagedCustomerEntity = bankingServiceHelper.convertToCustomerEntity(customerDetails);
 		if(managedCustomerEntityOpt.isPresent()) {
-			Customer managedCustomerEntity = managedCustomerEntityOpt.get();
+			var managedCustomerEntity = managedCustomerEntityOpt.get();
 			
-			if(Optional.ofNullable(unmanagedCustomerEntity.getContactDetails()).isPresent()) {
+			if(unmanagedCustomerEntity.getContactDetails() != null) {
 				
-				Contact managedContact = managedCustomerEntity.getContactDetails();
+				var managedContact = managedCustomerEntity.getContactDetails();
 				if(managedContact != null) {
 					managedContact.setEmailId(unmanagedCustomerEntity.getContactDetails().getEmailId());
 					managedContact.setHomePhone(unmanagedCustomerEntity.getContactDetails().getHomePhone());
@@ -116,9 +106,9 @@ public class BankingServiceImpl implements BankingService {
 					managedCustomerEntity.setContactDetails(unmanagedCustomerEntity.getContactDetails());
 			}
 			
-			if(Optional.ofNullable(unmanagedCustomerEntity.getCustomerAddress()).isPresent()) {
+			if(unmanagedCustomerEntity.getCustomerAddress() != null) {
 				
-				Address managedAddress = managedCustomerEntity.getCustomerAddress();
+				var managedAddress = managedCustomerEntity.getCustomerAddress();
 				if(managedAddress != null) {
 					managedAddress.setAddress1(unmanagedCustomerEntity.getCustomerAddress().getAddress1());
 					managedAddress.setAddress2(unmanagedCustomerEntity.getCustomerAddress().getAddress2());
@@ -141,7 +131,7 @@ public class BankingServiceImpl implements BankingService {
 			
 			return ResponseEntity.status(HttpStatus.OK).body("Success: Customer updated.");
 		} else {
-			return ResponseEntity.status(HttpStatus.NOT_FOUND).body("Customer Number " + customerNumber + " not found.");
+			return ResponseEntity.status(HttpStatus.NOT_FOUND).body("Customer Number %d not found.".formatted(customerNumber));
 		}
 	}
 
@@ -153,10 +143,10 @@ public class BankingServiceImpl implements BankingService {
 	 */
 	public ResponseEntity<Object> deleteCustomer(Long customerNumber) {
 		
-		Optional<Customer> managedCustomerEntityOpt = customerRepository.findByCustomerNumber(customerNumber);
+		var managedCustomerEntityOpt = customerRepository.findByCustomerNumber(customerNumber);
 
 		if(managedCustomerEntityOpt.isPresent()) {
-			Customer managedCustomerEntity = managedCustomerEntityOpt.get();
+			var managedCustomerEntity = managedCustomerEntityOpt.get();
 			customerRepository.delete(managedCustomerEntity);
 			return ResponseEntity.status(HttpStatus.OK).body("Success: Customer deleted.");
 		} else {
@@ -174,12 +164,12 @@ public class BankingServiceImpl implements BankingService {
 	 */
 	public ResponseEntity<Object> findByAccountNumber(Long accountNumber) {
 		
-		Optional<Account> accountEntityOpt = accountRepository.findByAccountNumber(accountNumber);
+		var accountEntityOpt = accountRepository.findByAccountNumber(accountNumber);
 
 		if(accountEntityOpt.isPresent()) {
 			return ResponseEntity.status(HttpStatus.FOUND).body(bankingServiceHelper.convertToAccountDomain(accountEntityOpt.get()));
 		} else {
-			return ResponseEntity.status(HttpStatus.NOT_FOUND).body("Account Number " + accountNumber + " not found.");
+			return ResponseEntity.status(HttpStatus.NOT_FOUND).body("Account Number %d not found.".formatted(accountNumber));
 		}
 		
 	}
@@ -194,7 +184,7 @@ public class BankingServiceImpl implements BankingService {
 	 */
 	public ResponseEntity<Object> addNewAccount(AccountInformation accountInformation, Long customerNumber) {
 		
-		Optional<Customer> customerEntityOpt = customerRepository.findByCustomerNumber(customerNumber);
+		var customerEntityOpt = customerRepository.findByCustomerNumber(customerNumber);
 
 		if(customerEntityOpt.isPresent()) {
 			accountRepository.save(bankingServiceHelper.convertToAccountEntity(accountInformation));
@@ -219,69 +209,69 @@ public class BankingServiceImpl implements BankingService {
 	 */
 	public ResponseEntity<Object> transferDetails(TransferDetails transferDetails, Long customerNumber) {
 		
-		List<Account> accountEntities = new ArrayList<>();
+		var accountEntities = new ArrayList<Account>();
 		Account fromAccountEntity = null;
 		Account toAccountEntity = null;
 		
-		Optional<Customer> customerEntityOpt = customerRepository.findByCustomerNumber(customerNumber);
+		var customerEntityOpt = customerRepository.findByCustomerNumber(customerNumber);
 
 		// If customer is present
 		if(customerEntityOpt.isPresent()) {
 			
 			// get FROM ACCOUNT info
-			Optional<Account> fromAccountEntityOpt = accountRepository.findByAccountNumber(transferDetails.getFromAccountNumber());
+			var fromAccountEntityOpt = accountRepository.findByAccountNumber(transferDetails.fromAccountNumber());
 			if(fromAccountEntityOpt.isPresent()) {
 				fromAccountEntity = fromAccountEntityOpt.get();
 			}
 			else {
 			// if from request does not exist, 404 Bad Request
-				return ResponseEntity.status(HttpStatus.NOT_FOUND).body("From Account Number " + transferDetails.getFromAccountNumber() + " not found.");
+				return ResponseEntity.status(HttpStatus.NOT_FOUND).body("From Account Number %d not found.".formatted(transferDetails.fromAccountNumber()));
 			}
 			
 			
 			// get TO ACCOUNT info
-			Optional<Account> toAccountEntityOpt = accountRepository.findByAccountNumber(transferDetails.getToAccountNumber());
+			var toAccountEntityOpt = accountRepository.findByAccountNumber(transferDetails.toAccountNumber());
 			if(toAccountEntityOpt.isPresent()) {
 				toAccountEntity = toAccountEntityOpt.get();
 			}
 			else {
 			// if from request does not exist, 404 Bad Request
-				return ResponseEntity.status(HttpStatus.NOT_FOUND).body("To Account Number " + transferDetails.getToAccountNumber() + " not found.");
+				return ResponseEntity.status(HttpStatus.NOT_FOUND).body("To Account Number %d not found.".formatted(transferDetails.toAccountNumber()));
 			}
 
 			
 			// if not sufficient funds, return 400 Bad Request
-			if(fromAccountEntity.getAccountBalance() < transferDetails.getTransferAmount()) {
+			if(fromAccountEntity.getAccountBalance() < transferDetails.transferAmount()) {
 				return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Insufficient Funds.");
 			}
 			else {
 				synchronized (this) {
 					// update FROM ACCOUNT 
-					fromAccountEntity.setAccountBalance(fromAccountEntity.getAccountBalance() - transferDetails.getTransferAmount());
+					fromAccountEntity.setAccountBalance(fromAccountEntity.getAccountBalance() - transferDetails.transferAmount());
 					fromAccountEntity.setUpdateDateTime(new Date());
 					accountEntities.add(fromAccountEntity);
 					
 					// update TO ACCOUNT
-					toAccountEntity.setAccountBalance(toAccountEntity.getAccountBalance() + transferDetails.getTransferAmount());
+					toAccountEntity.setAccountBalance(toAccountEntity.getAccountBalance() + transferDetails.transferAmount());
 					toAccountEntity.setUpdateDateTime(new Date());
 					accountEntities.add(toAccountEntity);
 					
 					accountRepository.saveAll(accountEntities);
 					
 					// Create transaction for FROM Account
-					Transaction fromTransaction = bankingServiceHelper.createTransaction(transferDetails, fromAccountEntity.getAccountNumber(), "DEBIT");
+					var fromTransaction = bankingServiceHelper.createTransaction(transferDetails, fromAccountEntity.getAccountNumber(), "DEBIT");
 					transactionRepository.save(fromTransaction);
 					
 					// Create transaction for TO Account
-					Transaction toTransaction = bankingServiceHelper.createTransaction(transferDetails, toAccountEntity.getAccountNumber(), "CREDIT");
+					var toTransaction = bankingServiceHelper.createTransaction(transferDetails, toAccountEntity.getAccountNumber(), "CREDIT");
 					transactionRepository.save(toTransaction);
 				}
 
-				return ResponseEntity.status(HttpStatus.OK).body("Success: Amount transferred for Customer Number " + customerNumber);
+				return ResponseEntity.status(HttpStatus.OK).body("Success: Amount transferred for Customer Number %d".formatted(customerNumber));
 			}
 				
 		} else {
-			return ResponseEntity.status(HttpStatus.NOT_FOUND).body("Customer Number " + customerNumber + " not found.");
+			return ResponseEntity.status(HttpStatus.NOT_FOUND).body("Customer Number %d not found.".formatted(customerNumber));
 		}
 		
 	}
@@ -293,18 +283,17 @@ public class BankingServiceImpl implements BankingService {
 	 * @return
 	 */
 	public List<TransactionDetails> findTransactionsByAccountNumber(Long accountNumber) {
-		List<TransactionDetails> transactionDetails = new ArrayList<>();
-		Optional<Account> accountEntityOpt = accountRepository.findByAccountNumber(accountNumber);
+		var accountEntityOpt = accountRepository.findByAccountNumber(accountNumber);
 		if(accountEntityOpt.isPresent()) {
-			Optional<List<Transaction>> transactionEntitiesOpt = transactionRepository.findByAccountNumber(accountNumber);
-			if(transactionEntitiesOpt.isPresent()) {
-				transactionEntitiesOpt.get().forEach(transaction -> {
-					transactionDetails.add(bankingServiceHelper.convertToTransactionDomain(transaction));
-				});
-			}
+			var transactionEntitiesOpt = transactionRepository.findByAccountNumber(accountNumber);
+			return transactionEntitiesOpt
+					.map(transactions -> transactions.stream()
+							.map(bankingServiceHelper::convertToTransactionDomain)
+							.toList())
+					.orElse(List.of());
 		}
 		
-		return transactionDetails;
+		return List.of();
 	}
 
 

@@ -154,7 +154,7 @@ public class BankingServiceHelper {
 		
 		return Transaction.builder()
 							.accountNumber(accountNumber)
-							.txAmount(transferDetails.getTransferAmount())
+							.txAmount(transferDetails.transferAmount())
 							.txType(txType)
 							.txDateTime(new Date())
 							.build();
