@@ -1,8 +1,9 @@
 package com.coding.exercise.bankapp.config;
 
+import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
-import org.springframework.security.config.annotation.web.configuration.WebSecurityConfigurerAdapter;
+import org.springframework.security.web.SecurityFilterChain;
 
 /**
  * 
@@ -13,14 +14,17 @@ import org.springframework.security.config.annotation.web.configuration.WebSecur
  *
  */
 @Configuration
-public class SecurityConfig extends WebSecurityConfigurerAdapter {
+public class SecurityConfig {
 
-    @Override
-    protected void configure(HttpSecurity httpSecurity) throws Exception {
-        httpSecurity.authorizeRequests().antMatchers("/").permitAll().and()
-                .authorizeRequests().antMatchers("/h2-console/**").permitAll();
+    @Bean
+    public SecurityFilterChain securityFilterChain(HttpSecurity httpSecurity) throws Exception {
+        httpSecurity.authorizeHttpRequests(authorize -> authorize
+                .requestMatchers("/", "/h2-console/**").permitAll()
+                .anyRequest().permitAll());
 
-        httpSecurity.csrf().disable();
-        httpSecurity.headers().frameOptions().disable();
+        httpSecurity.csrf(csrf -> csrf.disable());
+        httpSecurity.headers(headers -> headers.frameOptions(frameOptions -> frameOptions.disable()));
+
+        return httpSecurity.build();
     }
 }
