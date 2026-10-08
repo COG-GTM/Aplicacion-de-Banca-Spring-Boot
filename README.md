@@ -52,7 +52,7 @@ spring-boot-starter-web
 spring-boot-devtools
 h2 - Inmemory database
 lombok - to reduce boilerplate code
-springdoc-openapi-starter-webmvc-ui - API documentation (OpenAPI 3)
+springdoc-openapi-starter-webmvc-ui - API documentation (OpenAPI 3.1)
 spring-boot-starter-test
 spring-security-test
 
