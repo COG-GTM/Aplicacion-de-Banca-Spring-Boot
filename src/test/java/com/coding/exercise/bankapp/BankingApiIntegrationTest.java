@@ -141,6 +141,14 @@ class BankingApiIntegrationTest {
 				.content(transferJson(5101, 5102, "1001")))
 				.andExpect(status().isBadRequest())
 				.andExpect(content().string("Insufficient Funds."));
+		mockMvc.perform(put("/accounts/transfer/1001").contentType(MediaType.APPLICATION_JSON)
+				.content(transferJson(5101, 5102, "\"NaN\"")))
+				.andExpect(status().isBadRequest())
+				.andExpect(content().string("Transfer amount must be greater than zero."));
+		mockMvc.perform(put("/accounts/transfer/1001").contentType(MediaType.APPLICATION_JSON)
+				.content(transferJson(5101, 5102, "\"Infinity\"")))
+				.andExpect(status().isBadRequest())
+				.andExpect(content().string("Transfer amount must be greater than zero."));
 
 		mockMvc.perform(get("/accounts/5101"))
 				.andExpect(status().isOk())

@@ -228,7 +228,8 @@ public class BankingServiceImpl implements BankingService {
 
 		// If customer is present
 		if(customerEntityOpt.isPresent()) {
-			if (transferDetails.getTransferAmount() == null || transferDetails.getTransferAmount() <= 0) {
+			Double transferAmount = transferDetails.getTransferAmount();
+			if (transferAmount == null || !Double.isFinite(transferAmount) || transferAmount <= 0) {
 				return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Transfer amount must be greater than zero.");
 			}
 			if (Objects.equals(transferDetails.getFromAccountNumber(), transferDetails.getToAccountNumber())) {
