@@ -97,6 +97,8 @@ fail the batch. Customer-scoped operations only act on accounts linked to that c
 | PUT | `/accounts/bulk/status/{customerNumber}` | `{"accountNumbers": [...], "accountStatus": "Frozen"}` | `UPDATED`, `NOT_FOUND`, `NOT_OWNED` |
 | POST | `/accounts/bulk/delete/{customerNumber}` | `{"accountNumbers": [...]}` | `DELETED`, `REJECTED` (non-zero balance), `NOT_FOUND`, `NOT_OWNED` |
 
+New accounts without an `accountBalance` start at `0`; text fields longer than 255 characters are reported as `INVALID`.
+
 Repeated or missing account numbers in a request are reported as `DUPLICATE` / `INVALID`. Responses
 look like `{"operation": "ADD", "requested": 3, "succeeded": 2, "failed": 1, "results": [...]}`.
 An empty or oversized batch returns `400`; an unknown customer returns `404`. See

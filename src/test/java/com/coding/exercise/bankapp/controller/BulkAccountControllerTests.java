@@ -179,6 +179,45 @@ class BulkAccountControllerTests {
 				.andExpect(jsonPath("$[0].txType").value("DEBIT"));
 	}
 
+	@Test
+	void overlongTextIsReportedPerItemWithoutRollingBackBatch() throws Exception {
+		long customer = createCustomer();
+		long valid = nextNumber();
+		long overlong = nextNumber();
+		Map<String, Object> tooLong = account(overlong, 0);
+		tooLong.put("accountType", "x".repeat(256));
+
+		bulkAdd(customer, account(valid, 0), tooLong)
+				.andExpect(status().isOk())
+				.andExpect(jsonPath("$.results[0].status").value("CREATED"))
+				.andExpect(jsonPath("$.results[1].status").value("INVALID"));
+		mockMvc.perform(get("/accounts/" + valid)).andExpect(status().isFound());
+
+		Map<String, Object> body = new LinkedHashMap<>();
+		body.put("accountNumbers", List.of(valid));
+		body.put("accountStatus", "y".repeat(256));
+		perform(put("/accounts/bulk/status/" + customer), body).andExpect(status().isBadRequest());
+	}
+
+	@Test
+	void missingBalanceDefaultsToZeroAndCanReceiveTransfers() throws Exception {
+		long customer = createCustomer();
+		long funded = nextNumber();
+		long noBalance = nextNumber();
+		Map<String, Object> withoutBalance = account(noBalance, 0);
+		withoutBalance.remove("accountBalance");
+
+		bulkAdd(customer, account(funded, 50), withoutBalance)
+				.andExpect(status().isOk())
+				.andExpect(jsonPath("$.results[1].account.accountBalance").value(0.0));
+
+		perform(put("/accounts/transfer/" + customer),
+				Map.of("fromAccountNumber", funded, "toAccountNumber", noBalance, "transferAmount", 10))
+				.andExpect(status().isOk());
+		perform(post("/accounts/bulk/lookup"), Map.of("accountNumbers", List.of(noBalance)))
+				.andExpect(jsonPath("$.results[0].account.accountBalance").value(10.0));
+	}
+
 	private long createCustomer() throws Exception {
 		long customerNumber = nextNumber();
 		Map<String, Object> customer = new LinkedHashMap<>();

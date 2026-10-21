@@ -17,6 +17,8 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
 
 import com.coding.exercise.bankapp.domain.AccountInformation;
+import com.coding.exercise.bankapp.domain.AddressDetails;
+import com.coding.exercise.bankapp.domain.BankInformation;
 import com.coding.exercise.bankapp.domain.bulk.BulkAccountNumbersRequest;
 import com.coding.exercise.bankapp.domain.bulk.BulkAccountRequest;
 import com.coding.exercise.bankapp.domain.bulk.BulkAccountStatusRequest;
@@ -39,6 +41,8 @@ import com.coding.exercise.bankapp.service.helper.BankingServiceHelper;
 @Service
 @Transactional
 public class BulkAccountService {
+
+	private static final int MAX_TEXT_LENGTH = 255;
 
 	private final CustomerRepository customerRepository;
 	private final AccountRepository accountRepository;
@@ -64,7 +68,7 @@ public class BulkAccountService {
 		Set<Long> existing = findAccounts(accounts.stream()
 				.filter(Objects::nonNull)
 				.map(AccountInformation::getAccountNumber)
-				.collect(Collectors.toList())).keySet();
+				.collect(Collectors.toList()), false).keySet();
 
 		Set<Long> seen = new HashSet<>();
 		List<BulkItemResult> results = new ArrayList<>();
@@ -79,6 +83,9 @@ public class BulkAccountService {
 				results.add(result(accountNumber, BulkItemStatus.DUPLICATE, "Account number already exists."));
 			} else {
 				Account account = bankingServiceHelper.convertToAccountEntity(accountInformation);
+				if (account.getAccountBalance() == null) {
+					account.setAccountBalance(0.0);
+				}
 				account.setCreateDateTime(new Date());
 				accountRepository.save(account);
 				custAccXRefRepository.save(CustomerAccountXRef.builder()
@@ -100,7 +107,7 @@ public class BulkAccountService {
 		List<Long> accountNumbers = request == null ? null : request.getAccountNumbers();
 		validateBatch(accountNumbers, "accountNumbers");
 
-		Map<Long, Account> accounts = findAccounts(accountNumbers);
+		Map<Long, Account> accounts = findAccounts(accountNumbers, false);
 		return BulkOperationResponse.of("LOOKUP", processNumbers(accountNumbers, accountNumber -> {
 			Account account = accounts.get(accountNumber);
 			if (account == null) {
@@ -120,9 +127,13 @@ public class BulkAccountService {
 		if (!StringUtils.hasText(request.getAccountStatus())) {
 			throw new BulkRequestException(HttpStatus.BAD_REQUEST, "accountStatus is required.");
 		}
+		if (tooLong(request.getAccountStatus())) {
+			throw new BulkRequestException(HttpStatus.BAD_REQUEST,
+					"accountStatus must be at most " + MAX_TEXT_LENGTH + " characters.");
+		}
 		requireCustomer(customerNumber);
 
-		Map<Long, Account> accounts = findAccounts(accountNumbers);
+		Map<Long, Account> accounts = findAccounts(accountNumbers, false);
 		Set<Long> owned = findOwnedAccountNumbers(customerNumber, accountNumbers);
 		Date now = new Date();
 		return BulkOperationResponse.of("UPDATE_STATUS", processNumbers(accountNumbers, accountNumber -> {
@@ -147,7 +158,7 @@ public class BulkAccountService {
 		validateBatch(accountNumbers, "accountNumbers");
 		requireCustomer(customerNumber);
 
-		Map<Long, Account> accounts = findAccounts(accountNumbers);
+		Map<Long, Account> accounts = findAccounts(accountNumbers, true);
 		Set<Long> owned = findOwnedAccountNumbers(customerNumber, accountNumbers);
 		List<Long> deleted = new ArrayList<>();
 		List<BulkItemResult> results = processNumbers(accountNumbers, accountNumber -> {
@@ -156,7 +167,7 @@ public class BulkAccountService {
 				return notManageable;
 			}
 			Account account = accounts.get(accountNumber);
-			if (account.getAccountBalance() != null && account.getAccountBalance() != 0) {
+			if (account.getAccountBalance() == null || account.getAccountBalance() != 0) {
 				return result(accountNumber, BulkItemStatus.REJECTED,
 						"Account balance must be zero before deletion.");
 			}
@@ -200,15 +211,33 @@ public class BulkAccountService {
 		if (accountInformation.getAccountBalance() != null && accountInformation.getAccountBalance() < 0) {
 			return "accountBalance cannot be negative.";
 		}
+		BankInformation bank = accountInformation.getBankInformation();
+		AddressDetails address = bank.getBranchAddress();
+		if (tooLong(accountInformation.getAccountType(), accountInformation.getAccountStatus(), bank.getBranchName(),
+				address.getAddress1(), address.getAddress2(), address.getCity(), address.getState(),
+				address.getZip(), address.getCountry())) {
+			return "Text fields must be at most " + MAX_TEXT_LENGTH + " characters.";
+		}
 		return null;
 	}
 
-	private Map<Long, Account> findAccounts(List<Long> accountNumbers) {
+	private static boolean tooLong(String... values) {
+		for (String value : values) {
+			if (value != null && value.length() > MAX_TEXT_LENGTH) {
+				return true;
+			}
+		}
+		return false;
+	}
+
+	private Map<Long, Account> findAccounts(List<Long> accountNumbers, boolean forUpdate) {
 		Set<Long> distinct = accountNumbers.stream().filter(Objects::nonNull).collect(Collectors.toSet());
 		if (distinct.isEmpty()) {
 			return Map.of();
 		}
-		return accountRepository.findByAccountNumberIn(distinct).stream()
+		List<Account> found = forUpdate ? accountRepository.findForUpdateByAccountNumberIn(distinct)
+				: accountRepository.findByAccountNumberIn(distinct);
+		return found.stream()
 				.collect(Collectors.toMap(Account::getAccountNumber, Function.identity(), (first, second) -> first));
 	}
 
