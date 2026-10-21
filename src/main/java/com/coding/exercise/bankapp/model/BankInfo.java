@@ -10,6 +10,8 @@ import javax.persistence.GenerationType;
 import javax.persistence.Id;
 import javax.persistence.OneToOne;
 
+import org.hibernate.annotations.Type;
+
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -25,6 +27,7 @@ public class BankInfo {
 	@Id
 	@GeneratedValue(strategy=GenerationType.AUTO)
 	@Column(name="BANK_ID")
+	@Type(type = "uuid-char")
 	private UUID id;
 	
 	private String branchName;
