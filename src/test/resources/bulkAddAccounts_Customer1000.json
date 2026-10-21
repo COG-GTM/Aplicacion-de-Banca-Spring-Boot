@@ -1,0 +1,61 @@
+{
+  "accounts": [
+    {
+      "accountBalance": 1500,
+      "accountNumber": 6000,
+      "accountStatus": "Active",
+      "accountType": "Checking",
+      "bankInformation": {
+        "branchAddress": {
+          "address1": "123 Domain St",
+          "address2": "Suite D",
+          "city": "Hermitage",
+          "country": "USA",
+          "state": "TN",
+          "zip": "37076"
+        },
+        "branchCode": 65564,
+        "branchName": "Nashville Shores",
+        "routingNumber": 234789876
+      }
+    },
+    {
+      "accountBalance": 0,
+      "accountNumber": 6001,
+      "accountStatus": "Active",
+      "accountType": "Savings",
+      "bankInformation": {
+        "branchAddress": {
+          "address1": "123 Domain St",
+          "address2": "Suite D",
+          "city": "Hermitage",
+          "country": "USA",
+          "state": "TN",
+          "zip": "37076"
+        },
+        "branchCode": 65564,
+        "branchName": "Nashville Shores",
+        "routingNumber": 234789876
+      }
+    },
+    {
+      "accountBalance": 250,
+      "accountNumber": 6002,
+      "accountStatus": "Active",
+      "accountType": "Savings",
+      "bankInformation": {
+        "branchAddress": {
+          "address1": "123 Domain St",
+          "address2": "Suite D",
+          "city": "Hermitage",
+          "country": "USA",
+          "state": "TN",
+          "zip": "37076"
+        },
+        "branchCode": 65564,
+        "branchName": "Nashville Shores",
+        "routingNumber": 234789876
+      }
+    }
+  ]
+}

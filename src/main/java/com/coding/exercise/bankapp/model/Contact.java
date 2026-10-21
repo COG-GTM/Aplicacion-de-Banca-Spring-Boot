@@ -8,6 +8,8 @@ import javax.persistence.GeneratedValue;
 import javax.persistence.GenerationType;
 import javax.persistence.Id;
 
+import org.hibernate.annotations.Type;
+
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -23,6 +25,7 @@ public class Contact {
 	@Id
 	@GeneratedValue(strategy=GenerationType.AUTO)
 	@Column(name="CONTACT_ID")
+	@Type(type = "uuid-char")
 	private UUID id;
 	
 	private String emailId;

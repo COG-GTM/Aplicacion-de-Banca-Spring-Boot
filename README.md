@@ -84,6 +84,26 @@ http://localhost:8989/bank-api/h2-console/
 2. Browse to <project-root>/src/test/resources to find sample requests to add customer and accounts.
 
 
+## Bulk Account Number Management
+
+Manage many account numbers in one call (default limit: 100 per request, configurable with
+`bankapp.bulk.max-batch-size`). Each account number gets its own result, so one bad entry does not
+fail the batch. Customer-scoped operations only act on accounts linked to that customer.
+
+| Method | Path | Body | Per-item statuses |
+| ------ | ---- | ---- | ----------------- |
+| POST | `/accounts/bulk/add/{customerNumber}` | `{"accounts": [AccountInformation, ...]}` | `CREATED`, `DUPLICATE`, `INVALID` |
+| POST | `/accounts/bulk/lookup` | `{"accountNumbers": [5000, 5001]}` | `FOUND`, `NOT_FOUND` |
+| PUT | `/accounts/bulk/status/{customerNumber}` | `{"accountNumbers": [...], "accountStatus": "Frozen"}` | `UPDATED`, `NOT_FOUND`, `NOT_OWNED` |
+| POST | `/accounts/bulk/delete/{customerNumber}` | `{"accountNumbers": [...]}` | `DELETED`, `REJECTED` (non-zero balance), `NOT_FOUND`, `NOT_OWNED` |
+
+New accounts without an `accountBalance` start at `0`; text fields longer than 255 characters are reported as `INVALID`.
+
+Repeated or missing account numbers in a request are reported as `DUPLICATE` / `INVALID`. Responses
+look like `{"operation": "ADD", "requested": 3, "succeeded": 2, "failed": 1, "results": [...]}`.
+An empty or oversized batch returns `400`; an unknown customer returns `404`. See
+`src/test/resources/bulkAddAccounts_Customer1000.json` for a sample request.
+
 ## Migration Notes
 
 This application has been migrated from Java 8 to Java 11 (LTS). See `MIGRATION_NOTES.md` for detailed information about the migration process and changes made.

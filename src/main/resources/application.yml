@@ -9,3 +9,7 @@ spring:
   h2:
     console:
       enabled: true
+
+bankapp:
+  bulk:
+    max-batch-size: 100
