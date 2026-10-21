@@ -3,6 +3,7 @@ package com.coding.exercise.bankapp.controller;
 import java.util.List;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -58,9 +59,12 @@ public class CustomerController {
 			@ApiResponse(responseCode = "400", description = "Bad Request"),
 			@ApiResponse(responseCode = "500", description = "Internal Server Error") })
 
-	public CustomerDetails getCustomer(@PathVariable Long customerNumber) {
-
-		return bankingService.findByCustomerNumber(customerNumber);
+	public ResponseEntity<Object> getCustomer(@PathVariable Long customerNumber) {
+		CustomerDetails customer = bankingService.findByCustomerNumber(customerNumber);
+		if (customer == null) {
+			return ResponseEntity.status(HttpStatus.NOT_FOUND).body("Customer Number " + customerNumber + " not found.");
+		}
+		return ResponseEntity.ok(customer);
 	}
 
 	@PutMapping(path = "/{customerNumber}")
