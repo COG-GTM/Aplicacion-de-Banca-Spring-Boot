@@ -3,6 +3,7 @@ package com.coding.exercise.bankapp.service;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
+import java.util.Objects;
 import java.util.Optional;
 
 import org.springframework.beans.factory.annotation.Autowired;
@@ -177,7 +178,7 @@ public class BankingServiceImpl implements BankingService {
 		Optional<Account> accountEntityOpt = accountRepository.findByAccountNumber(accountNumber);
 
 		if(accountEntityOpt.isPresent()) {
-			return ResponseEntity.status(HttpStatus.FOUND).body(bankingServiceHelper.convertToAccountDomain(accountEntityOpt.get()));
+			return ResponseEntity.status(HttpStatus.OK).body(bankingServiceHelper.convertToAccountDomain(accountEntityOpt.get()));
 		} else {
 			return ResponseEntity.status(HttpStatus.NOT_FOUND).body("Account Number " + accountNumber + " not found.");
 		}
@@ -204,10 +205,10 @@ public class BankingServiceImpl implements BankingService {
 					.accountNumber(accountInformation.getAccountNumber())
 					.customerNumber(customerNumber)
 					.build());
-			
+			return ResponseEntity.status(HttpStatus.CREATED).body("New Account created successfully.");
 		}
 
-		return ResponseEntity.status(HttpStatus.CREATED).body("New Account created successfully.");
+		return ResponseEntity.status(HttpStatus.NOT_FOUND).body("Customer Number " + customerNumber + " not found.");
 	}
 
 	/**
@@ -227,6 +228,12 @@ public class BankingServiceImpl implements BankingService {
 
 		// If customer is present
 		if(customerEntityOpt.isPresent()) {
+			if (transferDetails.getTransferAmount() == null || transferDetails.getTransferAmount() <= 0) {
+				return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Transfer amount must be greater than zero.");
+			}
+			if (Objects.equals(transferDetails.getFromAccountNumber(), transferDetails.getToAccountNumber())) {
+				return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("From and To accounts must be different.");
+			}
 			
 			// get FROM ACCOUNT info
 			Optional<Account> fromAccountEntityOpt = accountRepository.findByAccountNumber(transferDetails.getFromAccountNumber());

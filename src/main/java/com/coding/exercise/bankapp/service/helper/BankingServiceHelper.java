@@ -71,6 +71,9 @@ public class BankingServiceHelper {
 	}
 	
 	public AddressDetails convertToAddressDomain(Address address) {
+		if (address == null) {
+			return null;
+		}
 		
 		return AddressDetails.builder().address1(address.getAddress1())
 				.address2(address.getAddress2())
@@ -82,6 +85,9 @@ public class BankingServiceHelper {
 	}
 	
 	public Address convertToAddressEntity(AddressDetails addressDetails) {
+		if (addressDetails == null) {
+			return null;
+		}
 		
 		return Address.builder().address1(addressDetails.getAddress1())
 				.address2(addressDetails.getAddress2())
@@ -93,6 +99,9 @@ public class BankingServiceHelper {
 	}
 	
 	public ContactDetails convertToContactDomain(Contact contact) {
+		if (contact == null) {
+			return null;
+		}
 		
 		return ContactDetails.builder()
 				.emailId(contact.getEmailId())
@@ -102,6 +111,9 @@ public class BankingServiceHelper {
 	}
 	
 	public Contact convertToContactEntity(ContactDetails contactDetails) {
+		if (contactDetails == null) {
+			return null;
+		}
 		
 		return Contact.builder()
 				.emailId(contactDetails.getEmailId())
@@ -111,6 +123,9 @@ public class BankingServiceHelper {
 	}
 	
 	public BankInformation convertToBankInfoDomain(BankInfo bankInfo) {
+		if (bankInfo == null) {
+			return null;
+		}
 		
 		return BankInformation.builder()
 				.branchCode(bankInfo.getBranchCode())
@@ -121,6 +136,9 @@ public class BankingServiceHelper {
 	}
 	
 	public BankInfo convertToBankInfoEntity(BankInformation bankInformation) {
+		if (bankInformation == null) {
+			return null;
+		}
 		
 		return BankInfo.builder()
 				.branchCode(bankInformation.getBranchCode())
