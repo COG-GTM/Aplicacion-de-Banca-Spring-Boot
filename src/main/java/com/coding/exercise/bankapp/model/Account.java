@@ -13,6 +13,8 @@ import javax.persistence.OneToOne;
 import javax.persistence.Temporal;
 import javax.persistence.TemporalType;
 
+import org.hibernate.annotations.Type;
+
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -26,6 +28,7 @@ import lombok.NoArgsConstructor;
 public class Account {
 
 	@Id
+	@Type(type = "uuid-char")
 	@GeneratedValue(strategy=GenerationType.AUTO)
 	@Column(name="ACCT_ID")
 	private UUID id;

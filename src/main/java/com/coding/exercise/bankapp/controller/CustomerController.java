@@ -13,6 +13,7 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+import com.coding.exercise.bankapp.domain.BulkCustomerUpdateRequest;
 import com.coding.exercise.bankapp.domain.CustomerDetails;
 import com.coding.exercise.bankapp.service.BankingServiceImpl;
 
@@ -73,6 +74,15 @@ public class CustomerController {
 			@PathVariable Long customerNumber) {
 
 		return bankingService.updateCustomer(customerDetails, customerNumber);
+	}
+
+	@PutMapping(path = "/bulk")
+	@Operation(summary = "Bulk update customers", description = "Updates customer fields and returns per-item results.")
+	@ApiResponses(value = { @ApiResponse(responseCode = "200", description = "Batch processed with per-item results"),
+			@ApiResponse(responseCode = "400", description = "Empty or oversized batch") })
+	public ResponseEntity<Object> bulkUpdateCustomers(@RequestBody BulkCustomerUpdateRequest request) {
+
+		return bankingService.bulkUpdateCustomers(request);
 	}
 
 	@DeleteMapping(path = "/{customerNumber}")

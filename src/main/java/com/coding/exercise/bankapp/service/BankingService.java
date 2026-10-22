@@ -5,6 +5,7 @@ import java.util.List;
 import org.springframework.http.ResponseEntity;
 
 import com.coding.exercise.bankapp.domain.AccountInformation;
+import com.coding.exercise.bankapp.domain.BulkCustomerUpdateRequest;
 import com.coding.exercise.bankapp.domain.CustomerDetails;
 import com.coding.exercise.bankapp.domain.TransactionDetails;
 import com.coding.exercise.bankapp.domain.TransferDetails;
@@ -18,6 +19,8 @@ public interface BankingService {
     public CustomerDetails findByCustomerNumber(Long customerNumber);
     
     public ResponseEntity<Object> updateCustomer(CustomerDetails customerDetails, Long customerNumber);
+
+    public ResponseEntity<Object> bulkUpdateCustomers(BulkCustomerUpdateRequest request);
     
     public ResponseEntity<Object> deleteCustomer(Long customerNumber) ;
     
