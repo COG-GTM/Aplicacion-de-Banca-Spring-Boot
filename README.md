@@ -67,6 +67,43 @@ http://localhost:8989/bank-api/swagger-ui.html
 
 ```
 
+## Bulk Customer Update
+
+Use `PUT /bank-api/customers/bulk` to update up to 100 customers in one request. Only non-null fields are changed; omitted fields remain unchanged.
+
+```json
+{
+  "customers": [
+    {
+      "customerNumber": 1000,
+      "lastName": "Updated",
+      "contactDetails": {
+        "emailId": "updated@example.com"
+      }
+    }
+  ]
+}
+```
+
+The response includes one result per requested item, in request order:
+
+```json
+{
+  "requested": 1,
+  "updated": 1,
+  "failed": 0,
+  "results": [
+    {
+      "customerNumber": 1000,
+      "status": "UPDATED",
+      "message": "Customer updated."
+    }
+  ]
+}
+```
+
+Result statuses are `UPDATED`, `NOT_FOUND`, `INVALID`, and `DUPLICATE`. Empty batches and batches over 100 items return `400 Bad Request`.
+
 ## H2 In-Memory Database
 
 Make sure to use jdbc:h2:mem:testdb as your jdbc url. If you intend to you use custom database name, please
@@ -91,4 +128,3 @@ This application has been migrated from Java 8 to Java 11 (LTS). See `MIGRATION_
 ## Authors
 
 * **Shyam Bathina**
-

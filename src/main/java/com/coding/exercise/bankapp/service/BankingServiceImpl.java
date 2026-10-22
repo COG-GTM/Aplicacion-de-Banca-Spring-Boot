@@ -2,8 +2,10 @@ package com.coding.exercise.bankapp.service;
 
 import java.util.ArrayList;
 import java.util.Date;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
@@ -12,6 +14,12 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.coding.exercise.bankapp.domain.AccountInformation;
+import com.coding.exercise.bankapp.domain.AddressDetails;
+import com.coding.exercise.bankapp.domain.BulkCustomerUpdateRequest;
+import com.coding.exercise.bankapp.domain.BulkUpdateResponse;
+import com.coding.exercise.bankapp.domain.BulkUpdateResult;
+import com.coding.exercise.bankapp.domain.BulkUpdateStatus;
+import com.coding.exercise.bankapp.domain.ContactDetails;
 import com.coding.exercise.bankapp.domain.CustomerDetails;
 import com.coding.exercise.bankapp.domain.TransactionDetails;
 import com.coding.exercise.bankapp.domain.TransferDetails;
@@ -30,6 +38,8 @@ import com.coding.exercise.bankapp.service.helper.BankingServiceHelper;
 @Service
 @Transactional
 public class BankingServiceImpl implements BankingService {
+
+	public static final int MAX_BULK_UPDATE_SIZE = 100;
 
 	@Autowired
     private CustomerRepository customerRepository;
@@ -142,6 +152,165 @@ public class BankingServiceImpl implements BankingService {
 			return ResponseEntity.status(HttpStatus.OK).body("Success: Customer updated.");
 		} else {
 			return ResponseEntity.status(HttpStatus.NOT_FOUND).body("Customer Number " + customerNumber + " not found.");
+		}
+	}
+
+	/**
+	 * PATCH-style update of multiple customers.
+	 *
+	 * @param request customers and fields to update
+	 * @return per-customer update results
+	 */
+	@Override
+	@Transactional
+	public ResponseEntity<Object> bulkUpdateCustomers(BulkCustomerUpdateRequest request) {
+		if (request == null || request.getCustomers() == null || request.getCustomers().isEmpty()) {
+			return ResponseEntity.badRequest().body("Bulk update request must contain at least one customer.");
+		}
+		if (request.getCustomers().size() > MAX_BULK_UPDATE_SIZE) {
+			return ResponseEntity.badRequest().body("Bulk update request cannot exceed 100 customers.");
+		}
+
+		List<BulkUpdateResult> results = new ArrayList<>();
+		Set<Long> seenCustomerNumbers = new HashSet<>();
+		int updated = 0;
+
+		for (CustomerDetails details : request.getCustomers()) {
+			if (details == null || details.getCustomerNumber() == null) {
+				results.add(BulkUpdateResult.builder()
+						.customerNumber(details == null ? null : details.getCustomerNumber())
+						.status(BulkUpdateStatus.INVALID)
+						.message("customerNumber is required.")
+						.build());
+				continue;
+			}
+
+			Long customerNumber = details.getCustomerNumber();
+			if (!seenCustomerNumbers.add(customerNumber)) {
+				results.add(BulkUpdateResult.builder()
+						.customerNumber(customerNumber)
+						.status(BulkUpdateStatus.DUPLICATE)
+						.message("Customer Number " + customerNumber + " appears more than once in the request.")
+						.build());
+				continue;
+			}
+
+			if (details.getFirstName() == null && details.getMiddleName() == null && details.getLastName() == null
+					&& details.getStatus() == null && details.getContactDetails() == null
+					&& details.getCustomerAddress() == null) {
+				results.add(BulkUpdateResult.builder()
+						.customerNumber(customerNumber)
+						.status(BulkUpdateStatus.INVALID)
+						.message("No fields to update.")
+						.build());
+				continue;
+			}
+
+			Optional<Customer> customerEntityOpt = customerRepository.findByCustomerNumber(customerNumber);
+			if (!customerEntityOpt.isPresent()) {
+				results.add(BulkUpdateResult.builder()
+						.customerNumber(customerNumber)
+						.status(BulkUpdateStatus.NOT_FOUND)
+						.message("Customer Number " + customerNumber + " not found.")
+						.build());
+				continue;
+			}
+
+			Customer customer = customerEntityOpt.get();
+			if (details.getFirstName() != null) {
+				customer.setFirstName(details.getFirstName());
+			}
+			if (details.getMiddleName() != null) {
+				customer.setMiddleName(details.getMiddleName());
+			}
+			if (details.getLastName() != null) {
+				customer.setLastName(details.getLastName());
+			}
+			if (details.getStatus() != null) {
+				customer.setStatus(details.getStatus());
+			}
+			updateContact(customer, details.getContactDetails());
+			updateAddress(customer, details.getCustomerAddress());
+			customer.setUpdateDateTime(new Date());
+			customerRepository.save(customer);
+
+			updated++;
+			results.add(BulkUpdateResult.builder()
+					.customerNumber(customerNumber)
+					.status(BulkUpdateStatus.UPDATED)
+					.message("Customer updated.")
+					.build());
+		}
+
+		return ResponseEntity.ok(BulkUpdateResponse.builder()
+				.requested(request.getCustomers().size())
+				.updated(updated)
+				.failed(request.getCustomers().size() - updated)
+				.results(results)
+				.build());
+	}
+
+	private void updateContact(Customer customer, ContactDetails details) {
+		if (details == null) {
+			return;
+		}
+
+		Contact contact = customer.getContactDetails();
+		if (contact == null) {
+			customer.setContactDetails(Contact.builder()
+					.emailId(details.getEmailId())
+					.homePhone(details.getHomePhone())
+					.workPhone(details.getWorkPhone())
+					.build());
+			return;
+		}
+
+		if (details.getEmailId() != null) {
+			contact.setEmailId(details.getEmailId());
+		}
+		if (details.getHomePhone() != null) {
+			contact.setHomePhone(details.getHomePhone());
+		}
+		if (details.getWorkPhone() != null) {
+			contact.setWorkPhone(details.getWorkPhone());
+		}
+	}
+
+	private void updateAddress(Customer customer, AddressDetails details) {
+		if (details == null) {
+			return;
+		}
+
+		Address address = customer.getCustomerAddress();
+		if (address == null) {
+			customer.setCustomerAddress(Address.builder()
+					.address1(details.getAddress1())
+					.address2(details.getAddress2())
+					.city(details.getCity())
+					.state(details.getState())
+					.zip(details.getZip())
+					.country(details.getCountry())
+					.build());
+			return;
+		}
+
+		if (details.getAddress1() != null) {
+			address.setAddress1(details.getAddress1());
+		}
+		if (details.getAddress2() != null) {
+			address.setAddress2(details.getAddress2());
+		}
+		if (details.getCity() != null) {
+			address.setCity(details.getCity());
+		}
+		if (details.getState() != null) {
+			address.setState(details.getState());
+		}
+		if (details.getZip() != null) {
+			address.setZip(details.getZip());
+		}
+		if (details.getCountry() != null) {
+			address.setCountry(details.getCountry());
 		}
 	}
 
