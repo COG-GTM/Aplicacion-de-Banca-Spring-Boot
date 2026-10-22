@@ -26,6 +26,7 @@ import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.result.MockMvcResultMatchers;
 import org.springframework.security.test.context.support.WithMockUser;
 
+import com.coding.exercise.bankapp.domain.AddressDetails;
 import com.coding.exercise.bankapp.domain.BulkCustomerUpdateRequest;
 import com.coding.exercise.bankapp.domain.ContactDetails;
 import com.coding.exercise.bankapp.domain.CustomerDetails;
@@ -111,6 +112,60 @@ class BulkCustomerUpdateTests {
 		mockMvc.perform(get("/customers/1001"))
 				.andExpect(status().isOk())
 				.andExpect(jsonPath("$.status").value("Inactive"));
+	}
+
+	@Test
+	void treatsEmptyNestedObjectsAsNoFieldsToUpdate() throws Exception {
+		BulkCustomerUpdateRequest request = BulkCustomerUpdateRequest.builder()
+				.customers(Arrays.asList(
+						CustomerDetails.builder()
+								.customerNumber(1000L)
+								.contactDetails(ContactDetails.builder().build())
+								.build(),
+						CustomerDetails.builder()
+								.customerNumber(1001L)
+								.customerAddress(AddressDetails.builder().build())
+								.build()))
+				.build();
+
+		mockMvc.perform(put("/customers/bulk")
+				.contentType(MediaType.APPLICATION_JSON)
+				.content(objectMapper.writeValueAsString(request)))
+				.andExpect(status().isOk())
+				.andExpect(jsonPath("$.requested").value(2))
+				.andExpect(jsonPath("$.updated").value(0))
+				.andExpect(jsonPath("$.failed").value(2))
+				.andExpect(jsonPath("$.results[0].status").value("INVALID"))
+				.andExpect(jsonPath("$.results[0].message").value("No fields to update."))
+				.andExpect(jsonPath("$.results[1].status").value("INVALID"))
+				.andExpect(jsonPath("$.results[1].message").value("No fields to update."));
+	}
+
+	@Test
+	void rejectsOverlengthFieldWithoutAffectingOtherUpdates() throws Exception {
+		BulkCustomerUpdateRequest request = BulkCustomerUpdateRequest.builder()
+				.customers(Arrays.asList(
+						CustomerDetails.builder().customerNumber(1000L).lastName("Smith").build(),
+						CustomerDetails.builder().customerNumber(1001L).lastName("x".repeat(256)).build()))
+				.build();
+
+		mockMvc.perform(put("/customers/bulk")
+				.contentType(MediaType.APPLICATION_JSON)
+				.content(objectMapper.writeValueAsString(request)))
+				.andExpect(status().isOk())
+				.andExpect(jsonPath("$.requested").value(2))
+				.andExpect(jsonPath("$.updated").value(1))
+				.andExpect(jsonPath("$.failed").value(1))
+				.andExpect(jsonPath("$.results[0].status").value("UPDATED"))
+				.andExpect(jsonPath("$.results[1].status").value("INVALID"))
+				.andExpect(jsonPath("$.results[1].message").value("lastName exceeds 255 characters."));
+
+		mockMvc.perform(get("/customers/1000"))
+				.andExpect(status().isOk())
+				.andExpect(jsonPath("$.lastName").value("Smith"));
+		mockMvc.perform(get("/customers/1001"))
+				.andExpect(status().isOk())
+				.andExpect(jsonPath("$.lastName").value("Federer"));
 	}
 
 	@Test

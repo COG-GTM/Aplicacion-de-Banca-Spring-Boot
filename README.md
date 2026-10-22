@@ -102,7 +102,7 @@ The response includes one result per requested item, in request order:
 }
 ```
 
-Result statuses are `UPDATED`, `NOT_FOUND`, `INVALID`, and `DUPLICATE`. Empty batches and batches over 100 items return `400 Bad Request`.
+Result statuses are `UPDATED`, `NOT_FOUND`, `INVALID`, and `DUPLICATE`. Empty batches and batches over 100 items return `400 Bad Request`. Empty nested objects count as no change, and provided string fields over 255 characters are rejected as `INVALID`.
 
 ## H2 In-Memory Database
 

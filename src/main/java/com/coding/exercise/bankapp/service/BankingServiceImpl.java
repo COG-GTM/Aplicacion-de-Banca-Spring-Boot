@@ -40,6 +40,7 @@ import com.coding.exercise.bankapp.service.helper.BankingServiceHelper;
 public class BankingServiceImpl implements BankingService {
 
 	public static final int MAX_BULK_UPDATE_SIZE = 100;
+	public static final int MAX_FIELD_LENGTH = 255;
 
 	@Autowired
     private CustomerRepository customerRepository;
@@ -196,12 +197,22 @@ public class BankingServiceImpl implements BankingService {
 			}
 
 			if (details.getFirstName() == null && details.getMiddleName() == null && details.getLastName() == null
-					&& details.getStatus() == null && details.getContactDetails() == null
-					&& details.getCustomerAddress() == null) {
+					&& details.getStatus() == null && !hasContactFields(details.getContactDetails())
+					&& !hasAddressFields(details.getCustomerAddress())) {
 				results.add(BulkUpdateResult.builder()
 						.customerNumber(customerNumber)
 						.status(BulkUpdateStatus.INVALID)
 						.message("No fields to update.")
+						.build());
+				continue;
+			}
+
+			String tooLongField = getTooLongField(details);
+			if (tooLongField != null) {
+				results.add(BulkUpdateResult.builder()
+						.customerNumber(customerNumber)
+						.status(BulkUpdateStatus.INVALID)
+						.message(tooLongField + " exceeds 255 characters.")
 						.build());
 				continue;
 			}
@@ -250,8 +261,75 @@ public class BankingServiceImpl implements BankingService {
 				.build());
 	}
 
+	private boolean hasContactFields(ContactDetails details) {
+		return details != null && (details.getEmailId() != null || details.getHomePhone() != null
+				|| details.getWorkPhone() != null);
+	}
+
+	private boolean hasAddressFields(AddressDetails details) {
+		return details != null && (details.getAddress1() != null || details.getAddress2() != null
+				|| details.getCity() != null || details.getState() != null || details.getZip() != null
+				|| details.getCountry() != null);
+	}
+
+	private String getTooLongField(CustomerDetails details) {
+		if (exceedsMaxFieldLength(details.getFirstName())) {
+			return "firstName";
+		}
+		if (exceedsMaxFieldLength(details.getMiddleName())) {
+			return "middleName";
+		}
+		if (exceedsMaxFieldLength(details.getLastName())) {
+			return "lastName";
+		}
+		if (exceedsMaxFieldLength(details.getStatus())) {
+			return "status";
+		}
+
+		ContactDetails contactDetails = details.getContactDetails();
+		if (contactDetails != null) {
+			if (exceedsMaxFieldLength(contactDetails.getEmailId())) {
+				return "contactDetails.emailId";
+			}
+			if (exceedsMaxFieldLength(contactDetails.getHomePhone())) {
+				return "contactDetails.homePhone";
+			}
+			if (exceedsMaxFieldLength(contactDetails.getWorkPhone())) {
+				return "contactDetails.workPhone";
+			}
+		}
+
+		AddressDetails addressDetails = details.getCustomerAddress();
+		if (addressDetails != null) {
+			if (exceedsMaxFieldLength(addressDetails.getAddress1())) {
+				return "customerAddress.address1";
+			}
+			if (exceedsMaxFieldLength(addressDetails.getAddress2())) {
+				return "customerAddress.address2";
+			}
+			if (exceedsMaxFieldLength(addressDetails.getCity())) {
+				return "customerAddress.city";
+			}
+			if (exceedsMaxFieldLength(addressDetails.getState())) {
+				return "customerAddress.state";
+			}
+			if (exceedsMaxFieldLength(addressDetails.getZip())) {
+				return "customerAddress.zip";
+			}
+			if (exceedsMaxFieldLength(addressDetails.getCountry())) {
+				return "customerAddress.country";
+			}
+		}
+
+		return null;
+	}
+
+	private boolean exceedsMaxFieldLength(String value) {
+		return value != null && value.length() > MAX_FIELD_LENGTH;
+	}
+
 	private void updateContact(Customer customer, ContactDetails details) {
-		if (details == null) {
+		if (!hasContactFields(details)) {
 			return;
 		}
 
@@ -277,7 +355,7 @@ public class BankingServiceImpl implements BankingService {
 	}
 
 	private void updateAddress(Customer customer, AddressDetails details) {
-		if (details == null) {
+		if (!hasAddressFields(details)) {
 			return;
 		}
 
