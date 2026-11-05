@@ -1,0 +1,12 @@
+server.port: 8989
+server.servlet.context-path: /bank-api
+
+# Credentials must be supplied via environment variables; there is no default password.
+spring.security.user.name: ${BANKAPP_USER:bankapp}
+spring.security.user.password: ${BANKAPP_PASSWORD:}
+
+# Enabling H2 Console
+spring:
+  h2:
+    console:
+      enabled: true
