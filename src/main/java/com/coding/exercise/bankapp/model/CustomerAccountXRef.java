@@ -22,7 +22,7 @@ public class CustomerAccountXRef {
 
 	@Id
 	@GeneratedValue(strategy=GenerationType.AUTO)
-	@Column(name="CUST_ACC_XREF_ID")
+	@Column(name="CUST_ACC_XREF_ID", length = 16)
 	private UUID id;
 	
 	private Long accountNumber;

@@ -8,4 +8,6 @@ import com.coding.exercise.bankapp.model.CustomerAccountXRef;
 @Repository
 public interface CustomerAccountXRefRepository extends CrudRepository<CustomerAccountXRef, String> {
 
+	boolean existsByCustomerNumberAndAccountNumber(Long customerNumber, Long accountNumber);
+
 }

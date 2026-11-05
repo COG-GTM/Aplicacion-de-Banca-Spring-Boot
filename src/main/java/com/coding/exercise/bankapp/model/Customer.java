@@ -27,7 +27,7 @@ public class Customer {
 
     @Id
     @GeneratedValue
-    @Column(name="CUST_ID")
+    @Column(name="CUST_ID", length = 16)
     private UUID id;
     
     private String firstName;

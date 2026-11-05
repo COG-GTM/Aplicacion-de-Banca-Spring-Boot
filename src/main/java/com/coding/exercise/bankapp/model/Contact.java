@@ -22,7 +22,7 @@ public class Contact {
 
 	@Id
 	@GeneratedValue(strategy=GenerationType.AUTO)
-	@Column(name="CONTACT_ID")
+	@Column(name="CONTACT_ID", length = 16)
 	private UUID id;
 	
 	private String emailId;

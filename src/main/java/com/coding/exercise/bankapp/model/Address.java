@@ -22,7 +22,7 @@ public class Address {
 
 	@Id
 	@GeneratedValue(strategy=GenerationType.AUTO)
-	@Column(name="ADDR_ID")
+	@Column(name="ADDR_ID", length = 16)
 	private UUID id;
 	
 	private String address1;

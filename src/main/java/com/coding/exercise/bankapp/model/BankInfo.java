@@ -24,7 +24,7 @@ public class BankInfo {
 
 	@Id
 	@GeneratedValue(strategy=GenerationType.AUTO)
-	@Column(name="BANK_ID")
+	@Column(name="BANK_ID", length = 16)
 	private UUID id;
 	
 	private String branchName;
