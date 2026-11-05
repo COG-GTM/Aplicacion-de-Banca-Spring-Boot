@@ -59,7 +59,8 @@ $ curl -u bankapp:changeit -i http://localhost:8989/bank-api/actuator/health
 # Access Swagger documentation
 $ open http://localhost:8989/bank-api/swagger-ui.html
 
-# Access H2 database console (use JDBC URL: jdbc:h2:mem:testdb)
+# Access H2 database console (local profile only, basic auth, JDBC URL: jdbc:h2:mem:testdb)
+$ ./mvnw spring-boot:run -Dspring-boot.run.profiles=local
 $ open http://localhost:8989/bank-api/h2-console/
 ```
 
@@ -276,7 +277,7 @@ $ mvn test
 
 - **Lombok**: Reduces boilerplate code (getters, setters, constructors)
 - **Spring Boot DevTools**: Automatic restart during development
-- **H2 Console**: Database inspection at `/h2-console/`
+- **H2 Console**: Database inspection at `/h2-console/` (`local` profile only)
 - **Swagger UI**: API testing at `/swagger-ui.html`
 
 ## Testing
@@ -300,7 +301,7 @@ The application includes Spring Boot integration tests that verify:
 1. Start the application: `mvn spring-boot:run`
 2. Access Swagger UI: <http://localhost:8989/bank-api/swagger-ui.html>
 3. Use the interactive documentation to test API endpoints
-4. Monitor database state via H2 Console: <http://localhost:8989/bank-api/h2-console/>
+4. Monitor database state via H2 Console (`local` profile): <http://localhost:8989/bank-api/h2-console/>
 
 ## Troubleshooting
 
@@ -310,7 +311,7 @@ The application includes Spring Boot integration tests that verify:
 | ------- | ----- | -------- |
 | Port 8989 already in use | Another app using the port | Change `server.port` or kill process |
 | 401 Unauthorized | Missing or incorrect credentials | Use `bankapp:changeit` for basic auth |
-| H2 Console not accessible | Security configuration issue | Set `spring.h2.console.enabled=true` |
+| H2 Console returns 404 | Console disabled by default | Run with the `local` profile |
 | Maven build fails | Missing Java 11 | Install Java 11 and set `JAVA_HOME` |
 | Swagger UI not loading | Context path configuration | Access via `/bank-api/swagger-ui.html` |
 
