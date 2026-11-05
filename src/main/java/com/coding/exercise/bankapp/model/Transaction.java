@@ -25,7 +25,7 @@ public class Transaction {
 
 	@Id
 	@GeneratedValue(strategy=GenerationType.AUTO)
-	@Column(name="TX_ID")
+	@Column(name="TX_ID", length = 16)
 	private UUID id;
 	
 	private Long accountNumber;

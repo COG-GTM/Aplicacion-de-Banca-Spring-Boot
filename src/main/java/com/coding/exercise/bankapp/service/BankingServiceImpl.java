@@ -228,54 +228,58 @@ public class BankingServiceImpl implements BankingService {
 		// If customer is present
 		if(customerEntityOpt.isPresent()) {
 			
-			// get FROM ACCOUNT info
-			Optional<Account> fromAccountEntityOpt = accountRepository.findByAccountNumber(transferDetails.getFromAccountNumber());
+			Long fromAccountNumber = transferDetails.getFromAccountNumber();
+			Long toAccountNumber = transferDetails.getToAccountNumber();
+
+			// Lock both rows in a fixed order (lowest account number first) to avoid deadlocks
+			// between opposite-direction transfers. Locks are held until the transaction commits.
+			boolean fromFirst = fromAccountNumber == null || toAccountNumber == null
+					|| fromAccountNumber.compareTo(toAccountNumber) <= 0;
+			Optional<Account> firstOpt = accountRepository.findByAccountNumberForUpdate(fromFirst ? fromAccountNumber : toAccountNumber);
+			Optional<Account> secondOpt = accountRepository.findByAccountNumberForUpdate(fromFirst ? toAccountNumber : fromAccountNumber);
+			Optional<Account> fromAccountEntityOpt = fromFirst ? firstOpt : secondOpt;
+			Optional<Account> toAccountEntityOpt = fromFirst ? secondOpt : firstOpt;
+
 			if(fromAccountEntityOpt.isPresent()) {
 				fromAccountEntity = fromAccountEntityOpt.get();
 			}
 			else {
 			// if from request does not exist, 404 Bad Request
-				return ResponseEntity.status(HttpStatus.NOT_FOUND).body("From Account Number " + transferDetails.getFromAccountNumber() + " not found.");
+				return ResponseEntity.status(HttpStatus.NOT_FOUND).body("From Account Number " + fromAccountNumber + " not found.");
 			}
-			
-			
-			// get TO ACCOUNT info
-			Optional<Account> toAccountEntityOpt = accountRepository.findByAccountNumber(transferDetails.getToAccountNumber());
+
 			if(toAccountEntityOpt.isPresent()) {
 				toAccountEntity = toAccountEntityOpt.get();
 			}
 			else {
 			// if from request does not exist, 404 Bad Request
-				return ResponseEntity.status(HttpStatus.NOT_FOUND).body("To Account Number " + transferDetails.getToAccountNumber() + " not found.");
+				return ResponseEntity.status(HttpStatus.NOT_FOUND).body("To Account Number " + toAccountNumber + " not found.");
 			}
 
-			
 			// if not sufficient funds, return 400 Bad Request
 			if(fromAccountEntity.getAccountBalance() < transferDetails.getTransferAmount()) {
 				return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Insufficient Funds.");
 			}
 			else {
-				synchronized (this) {
-					// update FROM ACCOUNT 
-					fromAccountEntity.setAccountBalance(fromAccountEntity.getAccountBalance() - transferDetails.getTransferAmount());
-					fromAccountEntity.setUpdateDateTime(new Date());
-					accountEntities.add(fromAccountEntity);
-					
-					// update TO ACCOUNT
-					toAccountEntity.setAccountBalance(toAccountEntity.getAccountBalance() + transferDetails.getTransferAmount());
-					toAccountEntity.setUpdateDateTime(new Date());
-					accountEntities.add(toAccountEntity);
-					
-					accountRepository.saveAll(accountEntities);
-					
-					// Create transaction for FROM Account
-					Transaction fromTransaction = bankingServiceHelper.createTransaction(transferDetails, fromAccountEntity.getAccountNumber(), "DEBIT");
-					transactionRepository.save(fromTransaction);
-					
-					// Create transaction for TO Account
-					Transaction toTransaction = bankingServiceHelper.createTransaction(transferDetails, toAccountEntity.getAccountNumber(), "CREDIT");
-					transactionRepository.save(toTransaction);
-				}
+				// update FROM ACCOUNT 
+				fromAccountEntity.setAccountBalance(fromAccountEntity.getAccountBalance() - transferDetails.getTransferAmount());
+				fromAccountEntity.setUpdateDateTime(new Date());
+				accountEntities.add(fromAccountEntity);
+				
+				// update TO ACCOUNT
+				toAccountEntity.setAccountBalance(toAccountEntity.getAccountBalance() + transferDetails.getTransferAmount());
+				toAccountEntity.setUpdateDateTime(new Date());
+				accountEntities.add(toAccountEntity);
+				
+				accountRepository.saveAll(accountEntities);
+				
+				// Create transaction for FROM Account
+				Transaction fromTransaction = bankingServiceHelper.createTransaction(transferDetails, fromAccountEntity.getAccountNumber(), "DEBIT");
+				transactionRepository.save(fromTransaction);
+				
+				// Create transaction for TO Account
+				Transaction toTransaction = bankingServiceHelper.createTransaction(transferDetails, toAccountEntity.getAccountNumber(), "CREDIT");
+				transactionRepository.save(toTransaction);
 
 				return ResponseEntity.status(HttpStatus.OK).body("Success: Amount transferred for Customer Number " + customerNumber);
 			}
