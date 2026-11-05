@@ -45,6 +45,7 @@ public class AccountController {
 	@Operation(summary = "Add a new account", description = "Create an new account for existing customer.")
 	@ApiResponses(value = { @ApiResponse(responseCode = "200", description = "Success"),
 			@ApiResponse(responseCode = "400", description = "Bad Request"),
+			@ApiResponse(responseCode = "409", description = "Conflict"),
 			@ApiResponse(responseCode = "500", description = "Internal Server Error") })
 
 	public ResponseEntity<Object> addNewAccount(@RequestBody AccountInformation accountInformation,

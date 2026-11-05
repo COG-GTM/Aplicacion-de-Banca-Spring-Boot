@@ -11,4 +11,6 @@ import com.coding.exercise.bankapp.model.Account;
 public interface AccountRepository extends CrudRepository<Account, String> {
 
 	Optional<Account> findByAccountNumber(Long accountNumber);
+
+	boolean existsByAccountNumber(Long accountNumber);
 }

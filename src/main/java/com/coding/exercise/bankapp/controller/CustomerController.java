@@ -44,6 +44,7 @@ public class CustomerController {
 	@Operation(summary = "Add a Customer", description = "Add customer and create an account")
 	@ApiResponses(value = { @ApiResponse(responseCode = "200", description = "Success"),
 			@ApiResponse(responseCode = "400", description = "Bad Request"),
+			@ApiResponse(responseCode = "409", description = "Conflict"),
 			@ApiResponse(responseCode = "500", description = "Internal Server Error") })
 
 	public ResponseEntity<Object> addCustomer(@RequestBody CustomerDetails customer) {
