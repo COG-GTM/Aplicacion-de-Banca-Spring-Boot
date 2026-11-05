@@ -35,6 +35,16 @@ https://projectlombok.org/setup/eclipse
 ```
 4. Default port for the api is 8989
 
+5. Provide API credentials through environment variables before starting the app. Every endpoint except
+`/` and `/actuator/health` requires HTTP Basic authentication; there is no default password and the
+application will not start without one.
+
+```
+export BANKAPP_USER=bankapp          # optional, defaults to "bankapp"
+export BANKAPP_PASSWORD=<strong-secret>
+curl -u "$BANKAPP_USER:$BANKAPP_PASSWORD" http://localhost:8989/bank-api/customers/all
+```
+
 
 ### Prerequisites
 
