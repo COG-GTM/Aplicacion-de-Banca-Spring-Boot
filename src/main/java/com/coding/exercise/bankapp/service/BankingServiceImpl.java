@@ -1,5 +1,6 @@
 package com.coding.exercise.bankapp.service;
 
+import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
@@ -219,6 +220,12 @@ public class BankingServiceImpl implements BankingService {
 	 */
 	public ResponseEntity<Object> transferDetails(TransferDetails transferDetails, Long customerNumber) {
 		
+		String validationError = validateTransferRequest(transferDetails);
+		if(validationError != null) {
+			return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(validationError);
+		}
+		BigDecimal transferAmount = transferDetails.getTransferAmount();
+
 		List<Account> accountEntities = new ArrayList<>();
 		Account fromAccountEntity = null;
 		Account toAccountEntity = null;
@@ -251,18 +258,20 @@ public class BankingServiceImpl implements BankingService {
 
 			
 			// if not sufficient funds, return 400 Bad Request
-			if(fromAccountEntity.getAccountBalance() < transferDetails.getTransferAmount()) {
+			Double fromBalance = fromAccountEntity.getAccountBalance();
+			if(fromBalance == null || fromBalance.isNaN() || fromBalance.isInfinite()
+					|| BigDecimal.valueOf(fromBalance).compareTo(transferAmount) < 0) {
 				return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Insufficient Funds.");
 			}
 			else {
 				synchronized (this) {
 					// update FROM ACCOUNT 
-					fromAccountEntity.setAccountBalance(fromAccountEntity.getAccountBalance() - transferDetails.getTransferAmount());
+					fromAccountEntity.setAccountBalance(BigDecimal.valueOf(fromBalance).subtract(transferAmount).doubleValue());
 					fromAccountEntity.setUpdateDateTime(new Date());
 					accountEntities.add(fromAccountEntity);
 					
 					// update TO ACCOUNT
-					toAccountEntity.setAccountBalance(toAccountEntity.getAccountBalance() + transferDetails.getTransferAmount());
+					toAccountEntity.setAccountBalance(BigDecimal.valueOf(toAccountEntity.getAccountBalance()).add(transferAmount).doubleValue());
 					toAccountEntity.setUpdateDateTime(new Date());
 					accountEntities.add(toAccountEntity);
 					
@@ -284,6 +293,28 @@ public class BankingServiceImpl implements BankingService {
 			return ResponseEntity.status(HttpStatus.NOT_FOUND).body("Customer Number " + customerNumber + " not found.");
 		}
 		
+	}
+
+	private static String validateTransferRequest(TransferDetails transferDetails) {
+		if(transferDetails == null) {
+			return "Transfer details are required.";
+		}
+		if(transferDetails.getFromAccountNumber() == null || transferDetails.getToAccountNumber() == null) {
+			return "From and To account numbers are required.";
+		}
+		if(transferDetails.getFromAccountNumber().equals(transferDetails.getToAccountNumber())) {
+			return "From and To account numbers must be different.";
+		}
+		BigDecimal transferAmount = transferDetails.getTransferAmount();
+		if(transferAmount == null || transferAmount.signum() <= 0) {
+			return "Transfer amount must be greater than zero.";
+		}
+		if(transferAmount.stripTrailingZeros().scale() > TransferDetails.MAX_FRACTION_DIGITS
+				|| transferAmount.precision() - transferAmount.scale() > TransferDetails.MAX_INTEGER_DIGITS) {
+			return "Transfer amount must have at most " + TransferDetails.MAX_INTEGER_DIGITS
+					+ " integer digits and " + TransferDetails.MAX_FRACTION_DIGITS + " decimal places.";
+		}
+		return null;
 	}
 
 	/**
