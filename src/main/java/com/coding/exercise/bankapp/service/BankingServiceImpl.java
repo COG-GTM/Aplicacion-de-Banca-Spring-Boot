@@ -223,6 +223,20 @@ public class BankingServiceImpl implements BankingService {
 		Account fromAccountEntity = null;
 		Account toAccountEntity = null;
 		
+		if(transferDetails == null) {
+			return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Transfer details are required.");
+		}
+		
+		Double transferAmount = transferDetails.getTransferAmount();
+		if(transferAmount == null || !Double.isFinite(transferAmount) || transferAmount <= 0) {
+			return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Transfer amount must be a positive number.");
+		}
+		
+		if(transferDetails.getFromAccountNumber() != null
+				&& transferDetails.getFromAccountNumber().equals(transferDetails.getToAccountNumber())) {
+			return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("From and To accounts must be different.");
+		}
+		
 		Optional<Customer> customerEntityOpt = customerRepository.findByCustomerNumber(customerNumber);
 
 		// If customer is present
@@ -251,18 +265,18 @@ public class BankingServiceImpl implements BankingService {
 
 			
 			// if not sufficient funds, return 400 Bad Request
-			if(fromAccountEntity.getAccountBalance() < transferDetails.getTransferAmount()) {
+			if(fromAccountEntity.getAccountBalance() < transferAmount) {
 				return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Insufficient Funds.");
 			}
 			else {
 				synchronized (this) {
 					// update FROM ACCOUNT 
-					fromAccountEntity.setAccountBalance(fromAccountEntity.getAccountBalance() - transferDetails.getTransferAmount());
+					fromAccountEntity.setAccountBalance(fromAccountEntity.getAccountBalance() - transferAmount);
 					fromAccountEntity.setUpdateDateTime(new Date());
 					accountEntities.add(fromAccountEntity);
 					
 					// update TO ACCOUNT
-					toAccountEntity.setAccountBalance(toAccountEntity.getAccountBalance() + transferDetails.getTransferAmount());
+					toAccountEntity.setAccountBalance(toAccountEntity.getAccountBalance() + transferAmount);
 					toAccountEntity.setUpdateDateTime(new Date());
 					accountEntities.add(toAccountEntity);
 					
