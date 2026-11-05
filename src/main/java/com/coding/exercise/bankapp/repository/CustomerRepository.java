@@ -11,5 +11,7 @@ import com.coding.exercise.bankapp.model.Customer;
 public interface CustomerRepository extends CrudRepository<Customer, String> {
 
     public Optional<Customer> findByCustomerNumber(Long customerNumber);
+
+    public boolean existsByCustomerNumber(Long customerNumber);
     
 }

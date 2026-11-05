@@ -68,6 +68,11 @@ public class BankingServiceImpl implements BankingService {
      */
 	public ResponseEntity<Object> addCustomer(CustomerDetails customerDetails) {
 		
+		Long customerNumber = customerDetails.getCustomerNumber();
+		if(customerNumber != null && customerRepository.existsByCustomerNumber(customerNumber)) {
+			return ResponseEntity.status(HttpStatus.CONFLICT).body("Customer Number " + customerNumber + " already exists.");
+		}
+		
 		Customer customer = bankingServiceHelper.convertToCustomerEntity(customerDetails);
 		customer.setCreateDateTime(new Date());
 		customerRepository.save(customer);
@@ -197,6 +202,11 @@ public class BankingServiceImpl implements BankingService {
 		Optional<Customer> customerEntityOpt = customerRepository.findByCustomerNumber(customerNumber);
 
 		if(customerEntityOpt.isPresent()) {
+			Long accountNumber = accountInformation.getAccountNumber();
+			if(accountNumber != null && accountRepository.existsByAccountNumber(accountNumber)) {
+				return ResponseEntity.status(HttpStatus.CONFLICT).body("Account Number " + accountNumber + " already exists.");
+			}
+			
 			accountRepository.save(bankingServiceHelper.convertToAccountEntity(accountInformation));
 			
 			// Add an entry to the CustomerAccountXRef
