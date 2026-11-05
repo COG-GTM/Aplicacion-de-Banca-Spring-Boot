@@ -197,6 +197,9 @@ public class BankingServiceImpl implements BankingService {
 		Optional<Customer> customerEntityOpt = customerRepository.findByCustomerNumber(customerNumber);
 
 		if(customerEntityOpt.isPresent()) {
+			if(accountRepository.findByAccountNumber(accountInformation.getAccountNumber()).isPresent()) {
+				return ResponseEntity.status(HttpStatus.CONFLICT).body("Account Number " + accountInformation.getAccountNumber() + " already exists.");
+			}
 			accountRepository.save(bankingServiceHelper.convertToAccountEntity(accountInformation));
 			
 			// Add an entry to the CustomerAccountXRef
@@ -227,6 +230,17 @@ public class BankingServiceImpl implements BankingService {
 
 		// If customer is present
 		if(customerEntityOpt.isPresent()) {
+			
+			Double transferAmount = transferDetails.getTransferAmount();
+			if(transferAmount == null || !(transferAmount > 0) || transferAmount.isInfinite()) {
+				return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Transfer amount must be greater than zero.");
+			}
+			
+			// Both accounts must belong to the customer
+			if(!custAccXRefRepository.existsByCustomerNumberAndAccountNumber(customerNumber, transferDetails.getFromAccountNumber())
+					|| !custAccXRefRepository.existsByCustomerNumberAndAccountNumber(customerNumber, transferDetails.getToAccountNumber())) {
+				return ResponseEntity.status(HttpStatus.FORBIDDEN).body("Accounts do not belong to Customer Number " + customerNumber + ".");
+			}
 			
 			// get FROM ACCOUNT info
 			Optional<Account> fromAccountEntityOpt = accountRepository.findByAccountNumber(transferDetails.getFromAccountNumber());
