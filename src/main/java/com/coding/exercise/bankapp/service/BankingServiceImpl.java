@@ -72,7 +72,7 @@ public class BankingServiceImpl implements BankingService {
 				&& customerRepository.findByCustomerNumber(customerDetails.getCustomerNumber()).isPresent()) {
 			return ResponseEntity.status(HttpStatus.CONFLICT).body("Customer Number " + customerDetails.getCustomerNumber() + " already exists.");
 		}
-		
+
 		Customer customer = bankingServiceHelper.convertToCustomerEntity(customerDetails);
 		customer.setCreateDateTime(new Date());
 		customerRepository.save(customer);
@@ -205,7 +205,7 @@ public class BankingServiceImpl implements BankingService {
 					|| accountRepository.findByAccountNumber(accountInformation.getAccountNumber()).isPresent()) {
 				return ResponseEntity.status(HttpStatus.CONFLICT).body("Account Number " + accountInformation.getAccountNumber() + " is missing or already exists.");
 			}
-			
+
 			accountRepository.save(bankingServiceHelper.convertToAccountEntity(accountInformation));
 			
 			// Add an entry to the CustomerAccountXRef
@@ -242,7 +242,7 @@ public class BankingServiceImpl implements BankingService {
 					|| !isAccountOwnedByCustomer(customerNumber, transferDetails.getToAccountNumber())) {
 				return ResponseEntity.status(HttpStatus.FORBIDDEN).body("Accounts do not belong to Customer Number " + customerNumber + ".");
 			}
-			
+
 			// get FROM ACCOUNT info
 			Optional<Account> fromAccountEntityOpt = accountRepository.findByAccountNumber(transferDetails.getFromAccountNumber());
 			if(fromAccountEntityOpt.isPresent()) {
