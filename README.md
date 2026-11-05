@@ -58,6 +58,23 @@ spring-security-test
 
 ```
 
+## Authentication
+
+Every endpoint except `/` and `/actuator/health` requires HTTP Basic authentication
+(including Swagger UI and the H2 console). Credentials are read from the environment:
+
+```
+export BANKAPP_SECURITY_USER=bankapp
+export BANKAPP_SECURITY_PASSWORD='<a strong password>'
+```
+
+If `BANKAPP_SECURITY_PASSWORD` is not set, Spring Boot generates a random password and
+prints it in the startup log (`Using generated security password: ...`).
+
+```
+curl -u "$BANKAPP_SECURITY_USER:$BANKAPP_SECURITY_PASSWORD" http://localhost:8989/bank-api/customers/all
+```
+
 ## API Documentation
 
 Please find the Rest API documentation (OpenAPI 3.0) in the below url

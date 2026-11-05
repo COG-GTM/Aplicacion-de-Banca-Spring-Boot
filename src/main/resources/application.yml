@@ -1,8 +1,10 @@
 server.port: 8989
 server.servlet.context-path: /bank-api
 
-spring.security.user.name: bankapp
-spring.security.user.password: changeit
+# Credentials come from the environment. When BANKAPP_SECURITY_PASSWORD is unset,
+# Spring Boot generates a random password and prints it in the startup log.
+spring.security.user.name: ${BANKAPP_SECURITY_USER:bankapp}
+spring.security.user.password: ${BANKAPP_SECURITY_PASSWORD:}
 
 # Enabling H2 Console
 spring:
