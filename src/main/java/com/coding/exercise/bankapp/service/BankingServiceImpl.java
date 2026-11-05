@@ -68,6 +68,11 @@ public class BankingServiceImpl implements BankingService {
      */
 	public ResponseEntity<Object> addCustomer(CustomerDetails customerDetails) {
 		
+		if(customerDetails.getCustomerNumber() != null
+				&& customerRepository.findByCustomerNumber(customerDetails.getCustomerNumber()).isPresent()) {
+			return ResponseEntity.status(HttpStatus.CONFLICT).body("Customer Number " + customerDetails.getCustomerNumber() + " already exists.");
+		}
+		
 		Customer customer = bankingServiceHelper.convertToCustomerEntity(customerDetails);
 		customer.setCreateDateTime(new Date());
 		customerRepository.save(customer);
@@ -158,12 +163,11 @@ public class BankingServiceImpl implements BankingService {
 		if(managedCustomerEntityOpt.isPresent()) {
 			Customer managedCustomerEntity = managedCustomerEntityOpt.get();
 			customerRepository.delete(managedCustomerEntity);
+			custAccXRefRepository.deleteByCustomerNumber(customerNumber);
 			return ResponseEntity.status(HttpStatus.OK).body("Success: Customer deleted.");
 		} else {
 			return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Customer does not exist.");
 		}
-		
-		//TODO: Delete all customer entries from CustomerAccountXRef
 	}
 
 	/**
@@ -197,6 +201,11 @@ public class BankingServiceImpl implements BankingService {
 		Optional<Customer> customerEntityOpt = customerRepository.findByCustomerNumber(customerNumber);
 
 		if(customerEntityOpt.isPresent()) {
+			if(accountInformation.getAccountNumber() == null
+					|| accountRepository.findByAccountNumber(accountInformation.getAccountNumber()).isPresent()) {
+				return ResponseEntity.status(HttpStatus.CONFLICT).body("Account Number " + accountInformation.getAccountNumber() + " is missing or already exists.");
+			}
+			
 			accountRepository.save(bankingServiceHelper.convertToAccountEntity(accountInformation));
 			
 			// Add an entry to the CustomerAccountXRef
@@ -227,6 +236,12 @@ public class BankingServiceImpl implements BankingService {
 
 		// If customer is present
 		if(customerEntityOpt.isPresent()) {
+			
+			// Both accounts must belong to the customer; checked before lookup so account existence is not disclosed
+			if(!isAccountOwnedByCustomer(customerNumber, transferDetails.getFromAccountNumber())
+					|| !isAccountOwnedByCustomer(customerNumber, transferDetails.getToAccountNumber())) {
+				return ResponseEntity.status(HttpStatus.FORBIDDEN).body("Accounts do not belong to Customer Number " + customerNumber + ".");
+			}
 			
 			// get FROM ACCOUNT info
 			Optional<Account> fromAccountEntityOpt = accountRepository.findByAccountNumber(transferDetails.getFromAccountNumber());
@@ -284,6 +299,11 @@ public class BankingServiceImpl implements BankingService {
 			return ResponseEntity.status(HttpStatus.NOT_FOUND).body("Customer Number " + customerNumber + " not found.");
 		}
 		
+	}
+
+	private boolean isAccountOwnedByCustomer(Long customerNumber, Long accountNumber) {
+		return accountNumber != null
+				&& custAccXRefRepository.findByCustomerNumberAndAccountNumber(customerNumber, accountNumber).isPresent();
 	}
 
 	/**

@@ -11,6 +11,8 @@ import javax.persistence.Id;
 import javax.persistence.Temporal;
 import javax.persistence.TemporalType;
 
+import org.hibernate.annotations.Type;
+
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -24,6 +26,7 @@ import lombok.NoArgsConstructor;
 public class Transaction {
 
 	@Id
+	@Type(type = "uuid-char")
 	@GeneratedValue(strategy=GenerationType.AUTO)
 	@Column(name="TX_ID")
 	private UUID id;
