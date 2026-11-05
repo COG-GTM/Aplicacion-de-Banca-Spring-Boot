@@ -5,6 +5,7 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.WebSecurityConfigurerAdapter;
 import org.springframework.security.config.http.SessionCreationPolicy;
+import org.springframework.util.StringUtils;
 
 /**
  * 
@@ -19,7 +20,8 @@ import org.springframework.security.config.http.SessionCreationPolicy;
 public class SecurityConfig extends WebSecurityConfigurerAdapter {
 
     public SecurityConfig(SecurityProperties securityProperties) {
-        if (securityProperties.getUser().isPasswordGenerated()) {
+        SecurityProperties.User user = securityProperties.getUser();
+        if (user.isPasswordGenerated() || !StringUtils.hasText(user.getPassword())) {
             throw new IllegalStateException(
                     "No API password configured: set the BANKAPP_PASSWORD environment variable");
         }
