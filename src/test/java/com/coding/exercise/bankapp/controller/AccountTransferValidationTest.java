@@ -62,7 +62,7 @@ public class AccountTransferValidationTest {
 
 	@ParameterizedTest
 	@ValueSource(strings = { "-1000000", "-100", "0", "0.00", "\"NaN\"", "\"Infinity\"", "\"-Infinity\"", "null",
-			"1.005", "1e400", "\"abc\"" })
+			"1.005", "1.000", "1e400", "\"abc\"" })
 	void rejectsInvalidAmountsWithoutChangingBalances(String amountJson) throws Exception {
 		mockMvc.perform(transfer(FROM_ACCOUNT, TO_ACCOUNT, amountJson)).andExpect(status().isBadRequest());
 
@@ -94,7 +94,7 @@ public class AccountTransferValidationTest {
 
 	@Test
 	void serviceRejectsInvalidAmountsWhenCalledDirectly() {
-		for (String amount : new String[] { "-1000000", "0", "1.005", "1e20" }) {
+		for (String amount : new String[] { "-1000000", "0", "1.005", "1.000", "1e20" }) {
 			ResponseEntity<Object> response = bankingService.transferDetails(
 					new TransferDetails(FROM_ACCOUNT, TO_ACCOUNT, new BigDecimal(amount)), CUSTOMER_NUMBER);
 			assertThat(response.getStatusCode()).as(amount).isEqualTo(HttpStatus.BAD_REQUEST);

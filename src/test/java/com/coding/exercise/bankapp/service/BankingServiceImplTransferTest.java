@@ -61,7 +61,7 @@ class BankingServiceImplTransferTest {
 	}
 
 	@ParameterizedTest
-	@ValueSource(strings = { "-1000000", "-0.01", "0", "1.005", "1e20" })
+	@ValueSource(strings = { "-1000000", "-0.01", "0", "1.005", "1.000", "1e20" })
 	void rejectsInvalidAmountWithoutTouchingBalances(String amount) {
 		ResponseEntity<Object> response = service.transferDetails(new TransferDetails(FROM, TO, new BigDecimal(amount)),
 				CUSTOMER);

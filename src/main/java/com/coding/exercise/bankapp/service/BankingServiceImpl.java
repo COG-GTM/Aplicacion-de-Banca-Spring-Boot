@@ -309,7 +309,7 @@ public class BankingServiceImpl implements BankingService {
 		if(transferAmount == null || transferAmount.signum() <= 0) {
 			return "Transfer amount must be greater than zero.";
 		}
-		if(transferAmount.stripTrailingZeros().scale() > TransferDetails.MAX_FRACTION_DIGITS
+		if(transferAmount.scale() > TransferDetails.MAX_FRACTION_DIGITS
 				|| transferAmount.precision() - transferAmount.scale() > TransferDetails.MAX_INTEGER_DIGITS) {
 			return "Transfer amount must have at most " + TransferDetails.MAX_INTEGER_DIGITS
 					+ " integer digits and " + TransferDetails.MAX_FRACTION_DIGITS + " decimal places.";
