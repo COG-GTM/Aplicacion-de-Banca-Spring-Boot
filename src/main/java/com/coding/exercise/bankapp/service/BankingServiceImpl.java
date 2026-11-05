@@ -223,6 +223,11 @@ public class BankingServiceImpl implements BankingService {
 		Account fromAccountEntity = null;
 		Account toAccountEntity = null;
 		
+		Double transferAmount = transferDetails.getTransferAmount();
+		if(transferAmount == null || transferAmount.isNaN() || transferAmount.isInfinite() || transferAmount <= 0) {
+			return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Transfer amount must be greater than zero.");
+		}
+
 		Optional<Customer> customerEntityOpt = customerRepository.findByCustomerNumber(customerNumber);
 
 		// If customer is present
@@ -230,6 +235,11 @@ public class BankingServiceImpl implements BankingService {
 			
 			Long fromAccountNumber = transferDetails.getFromAccountNumber();
 			Long toAccountNumber = transferDetails.getToAccountNumber();
+
+			// Only accounts linked to this customer can be debited
+			if(!custAccXRefRepository.existsByCustomerNumberAndAccountNumber(customerNumber, fromAccountNumber)) {
+				return ResponseEntity.status(HttpStatus.NOT_FOUND).body("From Account Number " + fromAccountNumber + " not found for Customer Number " + customerNumber + ".");
+			}
 
 			// Lock both rows in a fixed order (lowest account number first) to avoid deadlocks
 			// between opposite-direction transfers. Locks are held until the transaction commits.
@@ -257,17 +267,17 @@ public class BankingServiceImpl implements BankingService {
 			}
 
 			// if not sufficient funds, return 400 Bad Request
-			if(fromAccountEntity.getAccountBalance() < transferDetails.getTransferAmount()) {
+			if(fromAccountEntity.getAccountBalance() < transferAmount) {
 				return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Insufficient Funds.");
 			}
 			else {
 				// update FROM ACCOUNT 
-				fromAccountEntity.setAccountBalance(fromAccountEntity.getAccountBalance() - transferDetails.getTransferAmount());
+				fromAccountEntity.setAccountBalance(fromAccountEntity.getAccountBalance() - transferAmount);
 				fromAccountEntity.setUpdateDateTime(new Date());
 				accountEntities.add(fromAccountEntity);
 				
 				// update TO ACCOUNT
-				toAccountEntity.setAccountBalance(toAccountEntity.getAccountBalance() + transferDetails.getTransferAmount());
+				toAccountEntity.setAccountBalance(toAccountEntity.getAccountBalance() + transferAmount);
 				toAccountEntity.setUpdateDateTime(new Date());
 				accountEntities.add(toAccountEntity);
 				

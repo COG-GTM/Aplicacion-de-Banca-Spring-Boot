@@ -25,7 +25,9 @@ import org.springframework.test.annotation.DirtiesContext.ClassMode;
 import com.coding.exercise.bankapp.domain.TransferDetails;
 import com.coding.exercise.bankapp.model.Account;
 import com.coding.exercise.bankapp.model.Customer;
+import com.coding.exercise.bankapp.model.CustomerAccountXRef;
 import com.coding.exercise.bankapp.repository.AccountRepository;
+import com.coding.exercise.bankapp.repository.CustomerAccountXRefRepository;
 import com.coding.exercise.bankapp.repository.CustomerRepository;
 
 @SpringBootTest(properties = "spring.datasource.url=jdbc:h2:mem:transfer-concurrency;LOCK_TIMEOUT=30000")
@@ -37,6 +39,8 @@ public class TransferConcurrencyTest {
 	private static final long SOURCE_ACCOUNT = 9000L;
 	private static final long FIRST_DESTINATION = 9100L;
 	private static final double BALANCE = 100.0;
+	private static final long OTHER_CUSTOMER_NUMBER = 5353L;
+	private static final long OTHER_ACCOUNT = 9500L;
 
 	@Autowired
 	private BankingService bankingService;
@@ -44,12 +48,21 @@ public class TransferConcurrencyTest {
 	private AccountRepository accountRepository;
 	@Autowired
 	private CustomerRepository customerRepository;
+	@Autowired
+	private CustomerAccountXRefRepository custAccXRefRepository;
 
 	@BeforeEach
 	public void setUp() {
 		customerRepository.save(Customer.builder().customerNumber(CUSTOMER_NUMBER).firstName("Test").lastName("User")
 				.status("ACTIVE").createDateTime(new Date()).build());
 		accountRepository.save(account(SOURCE_ACCOUNT, BALANCE));
+		custAccXRefRepository.save(CustomerAccountXRef.builder().customerNumber(CUSTOMER_NUMBER)
+				.accountNumber(SOURCE_ACCOUNT).build());
+		customerRepository.save(Customer.builder().customerNumber(OTHER_CUSTOMER_NUMBER).firstName("Other")
+				.lastName("User").status("ACTIVE").createDateTime(new Date()).build());
+		accountRepository.save(account(OTHER_ACCOUNT, BALANCE));
+		custAccXRefRepository.save(CustomerAccountXRef.builder().customerNumber(OTHER_CUSTOMER_NUMBER)
+				.accountNumber(OTHER_ACCOUNT).build());
 		for (int i = 0; i < PARALLEL_TRANSFERS; i++) {
 			accountRepository.save(account(FIRST_DESTINATION + i, 0.0));
 		}
@@ -97,6 +110,26 @@ public class TransferConcurrencyTest {
 		} finally {
 			pool.shutdownNow();
 		}
+	}
+
+	@Test
+	public void nonPositiveTransferAmountIsRejected() {
+		for (double amount : new double[] { -50.0, 0.0, Double.NaN }) {
+			ResponseEntity<Object> response = bankingService
+					.transferDetails(new TransferDetails(SOURCE_ACCOUNT, FIRST_DESTINATION, amount), CUSTOMER_NUMBER);
+			assertEquals(HttpStatus.BAD_REQUEST, response.getStatusCode());
+		}
+		assertEquals(BALANCE, accountRepository.findByAccountNumber(SOURCE_ACCOUNT).get().getAccountBalance());
+		assertEquals(0.0, accountRepository.findByAccountNumber(FIRST_DESTINATION).get().getAccountBalance());
+	}
+
+	@Test
+	public void cannotDebitAnotherCustomersAccount() {
+		ResponseEntity<Object> response = bankingService
+				.transferDetails(new TransferDetails(OTHER_ACCOUNT, FIRST_DESTINATION, BALANCE), CUSTOMER_NUMBER);
+		assertEquals(HttpStatus.NOT_FOUND, response.getStatusCode());
+		assertEquals(BALANCE, accountRepository.findByAccountNumber(OTHER_ACCOUNT).get().getAccountBalance());
+		assertEquals(0.0, accountRepository.findByAccountNumber(FIRST_DESTINATION).get().getAccountBalance());
 	}
 
 	private static Account account(long accountNumber, double balance) {
