@@ -6,6 +6,7 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import java.nio.charset.StandardCharsets;
@@ -87,6 +88,9 @@ public class BankingApiSecurityTests {
 	public void openApiDocsAreServed() throws Exception {
 		mockMvc.perform(get("/v3/api-docs"))
 				.andExpect(status().isOk())
-				.andExpect(content().string(containsString("BANKING APPLICATION REST API")));
+				.andExpect(content().string(containsString("BANKING APPLICATION REST API")))
+				.andExpect(jsonPath("$.components.securitySchemes.csrf.name").value("X-XSRF-TOKEN"))
+				.andExpect(jsonPath("$.paths['/customers/add'].post.security[0].csrf").exists())
+				.andExpect(jsonPath("$.paths['/customers/all'].get.security").doesNotExist());
 	}
 }
