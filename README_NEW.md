@@ -316,7 +316,7 @@ The application includes Spring Boot integration tests that verify:
 | ------- | ----- | -------- |
 | Port 8989 already in use | Another app using the port | Change `server.port` or kill process |
 | 401 Unauthorized | Missing or incorrect credentials | Use `bankapp:changeit` for basic auth |
-| 403 Forbidden on POST/PUT/DELETE | Missing CSRF token | Send the `XSRF-TOKEN` cookie and `X-XSRF-TOKEN` header (see CSRF Token) |
+| 403 Forbidden on writes | Missing CSRF token | See [CSRF Token](#csrf-token) |
 | Maven build fails | Missing Java 17 | Install Java 17 and set `JAVA_HOME` |
 | Swagger UI not loading | Context path configuration | Access via `/bank-api/swagger-ui.html` |
 
