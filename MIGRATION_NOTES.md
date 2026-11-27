@@ -13,7 +13,8 @@ dependencies have no fix on that line).
 - Behaviour: POST/PUT/DELETE need the `XSRF-TOKEN` cookie and `X-XSRF-TOKEN` header; the H2 web
   console is no longer exposed; trailing-slash URLs keep working through `UrlHandlerFilter`.
 - CI: GitHub Actions uses JDK 17.
-- Rollback: revert the migration commit; Java 11 and Spring Boot 2.7.18 builds work as before.
+- Rollback: revert the whole migration PR (all of its commits, including the `UrlHandlerFilter`
+  bean, which needs Spring Framework 7); Java 11 and Spring Boot 2.7.18 builds then work as before.
 
 The application now requires Java 17 or later to build and run.
 
