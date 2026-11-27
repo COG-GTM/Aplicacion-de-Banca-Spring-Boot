@@ -344,22 +344,19 @@ After migration, the Swagger UI and API documentation URLs will change:
 
 ## Security Configuration Considerations
 
-The current `SecurityConfig.java` may need updates to allow access to SpringDoc endpoints. Add the following paths to the security configuration:
+Since the Spring Boot 4 upgrade, `SecurityConfig` exposes a `SecurityFilterChain` bean
+(`WebSecurityConfigurerAdapter`, `authorizeRequests()` and `antMatchers()` no longer exist). All paths,
+including the SpringDoc endpoints, are permitted, and CSRF is enabled; Swagger UI sends the token because
+`springdoc.swagger-ui.csrf.enabled` is `true`. To restrict access later, match the SpringDoc paths explicitly:
 
 ```java
-@Override
-protected void configure(HttpSecurity httpSecurity) throws Exception {
-    httpSecurity.authorizeRequests()
-            .antMatchers("/").permitAll()
-            .antMatchers("/h2-console/**").permitAll()
-            // Add SpringDoc paths
-            .antMatchers("/swagger-ui/**").permitAll()
-            .antMatchers("/swagger-ui.html").permitAll()
-            .antMatchers("/v3/api-docs/**").permitAll()
-            .and();
-
-    httpSecurity.csrf().disable();
-    httpSecurity.headers().frameOptions().disable();
+@Bean
+public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
+    http.authorizeHttpRequests(auth -> auth
+                    .requestMatchers("/swagger-ui/**", "/swagger-ui.html", "/v3/api-docs/**").permitAll()
+                    .anyRequest().permitAll())
+            .csrf(csrf -> csrf.spa());
+    return http.build();
 }
 ```
 
