@@ -149,7 +149,16 @@ Remove the Springfox dependencies and add SpringDoc OpenAPI:
 </dependency>
 ```
 
-**Note**: Version 1.7.0 is the latest stable version compatible with Spring Boot 2.x. For Spring Boot 3.x, use `springdoc-openapi-starter-webmvc-ui` version 2.x.
+**Note**: Version 1.7.0 only works with Spring Boot 2.x (`javax.servlet`). For Spring Boot 3.x use
+`springdoc-openapi-starter-webmvc-ui` 2.x. This project is now on Spring Boot 4 and uses:
+
+```xml
+<dependency>
+    <groupId>org.springdoc</groupId>
+    <artifactId>springdoc-openapi-starter-webmvc-ui</artifactId>
+    <version>3.2.1</version>
+</dependency>
+```
 
 ### Step 2: Update Configuration (ApplicationConfig.java)
 
