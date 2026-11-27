@@ -10,6 +10,8 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 import java.nio.charset.StandardCharsets;
 
+import jakarta.servlet.http.Cookie;
+
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -63,6 +65,20 @@ public class BankingApiSecurityTests {
 		mockMvc.perform(get("/customers/all"))
 				.andExpect(status().isOk())
 				.andExpect(header().string(HttpHeaders.SET_COOKIE, containsString("XSRF-TOKEN=")));
+	}
+
+	@Test
+	public void csrfCookieIssuedOnReadIsAcceptedOnWrite() throws Exception {
+		Cookie xsrfCookie = mockMvc.perform(get("/customers/all")).andReturn().getResponse().getCookie("XSRF-TOKEN");
+
+		mockMvc.perform(post("/customers/add").cookie(xsrfCookie).header("X-XSRF-TOKEN", xsrfCookie.getValue())
+				.contentType(MediaType.APPLICATION_JSON).content(json("AddCustomer_1001.json")))
+				.andExpect(status().isCreated());
+	}
+
+	@Test
+	public void trailingSlashUrlStillMatches() throws Exception {
+		mockMvc.perform(get("/customers/all/")).andExpect(status().isOk());
 	}
 
 	@Test
