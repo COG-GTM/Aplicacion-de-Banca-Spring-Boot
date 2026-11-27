@@ -61,7 +61,7 @@ spring-boot-starter-security-test
 
 ## API Documentation
 
-Please find the Rest API documentation (OpenAPI 3.0) in the below url
+Please find the Rest API documentation (OpenAPI 3.1) in the below url
 
 ```
 http://localhost:8989/bank-api/swagger-ui.html
@@ -75,8 +75,9 @@ with CSRF protection enabled, and an unauthenticated database console should not
 
 ## CSRF Protection
 
-CSRF protection is enabled. Every response sets an `XSRF-TOKEN` cookie; send its value back in the
-`X-XSRF-TOKEN` header (together with the cookie) on POST, PUT and DELETE requests. Swagger UI does this
+CSRF protection is enabled. The first response to a client without a token sets an `XSRF-TOKEN` cookie;
+keep that cookie and send its value back in the `X-XSRF-TOKEN` header (together with the cookie) on POST,
+PUT and DELETE requests. Swagger UI does this
 automatically. With curl:
 
 ```
