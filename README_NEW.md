@@ -80,7 +80,8 @@ $ open http://localhost:8989/bank-api/swagger-ui.html
 
 ### Basic Authentication
 
-All API endpoints require HTTP Basic Authentication:
+Basic auth credentials are configured, but the security chain currently permits anonymous
+requests, so `-u` in the examples below is optional:
 
 - **Username**: `bankapp`
 - **Password**: `changeit`
