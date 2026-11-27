@@ -28,7 +28,7 @@ BankApp is a comprehensive banking simulation application that provides:
 - **Financial Transactions**: Support for deposits, withdrawals, and internal transfers
 - **Transaction History**: Complete audit trail of all financial operations
 - **Interactive Documentation**: Swagger UI for API exploration and testing
-- **Development-Friendly**: H2 in-memory database with web console access
+- **Development-Friendly**: H2 in-memory database, no setup required
 
 **Target Audience**: Developers learning Spring Boot, system integrators needing banking APIs
 for testing, and students studying enterprise Java application architecture.
@@ -37,7 +37,7 @@ for testing, and students studying enterprise Java application architecture.
 
 ### Prerequisites
 
-- Java 11 or higher
+- Java 17 or higher
 - Maven 3.6+ (or use included Maven wrapper)
 - Any modern IDE (Spring Tool Suite, IntelliJ IDEA, Eclipse)
 
@@ -59,8 +59,6 @@ $ curl -u bankapp:changeit -i http://localhost:8989/bank-api/actuator/health
 # Access Swagger documentation
 $ open http://localhost:8989/bank-api/swagger-ui.html
 
-# Access H2 database console (use JDBC URL: jdbc:h2:mem:testdb)
-$ open http://localhost:8989/bank-api/h2-console/
 ```
 
 ## Configuration
@@ -71,7 +69,6 @@ $ open http://localhost:8989/bank-api/h2-console/
 | server.servlet.context-path | No | /bank-api | Base path for all endpoints |
 | spring.security.user.name | No | bankapp | Basic auth username |
 | spring.security.user.password | No | changeit | Basic auth password |
-| spring.h2.console.enabled | No | true | Enable H2 database console |
 | spring.datasource.url | No | jdbc:h2:mem:testdb | H2 database connection URL |
 
 **Configuration Files**:
@@ -83,10 +80,22 @@ $ open http://localhost:8989/bank-api/h2-console/
 
 ### Basic Authentication
 
-All API endpoints require HTTP Basic Authentication:
+Basic auth credentials are configured, but the security chain currently permits anonymous
+requests, so `-u` in the examples below is optional:
 
 - **Username**: `bankapp`
 - **Password**: `changeit`
+
+### CSRF Token
+
+CSRF protection is enabled, so POST, PUT and DELETE requests need a token. A GET returns it in the
+`XSRF-TOKEN` cookie; send the cookie back together with its value in the `X-XSRF-TOKEN` header.
+Without it the server returns 403. Swagger UI does this automatically.
+
+```bash
+$ curl -c cookies.txt -s -o /dev/null http://localhost:8989/bank-api/customers/all
+$ XSRF=$(awk '/XSRF-TOKEN/ {print $7}' cookies.txt)
+```
 
 ### Customer Operations
 
@@ -95,7 +104,7 @@ All API endpoints require HTTP Basic Authentication:
 $ curl -u bankapp:changeit http://localhost:8989/bank-api/customers/all
 
 # Add a new customer (creates customer with initial account)
-$ curl -u bankapp:changeit -X POST \
+$ curl -u bankapp:changeit -X POST -b cookies.txt -H "X-XSRF-TOKEN: $XSRF" \
   http://localhost:8989/bank-api/customers/add \
   -H "Content-Type: application/json" \
   -d '{
@@ -123,13 +132,13 @@ $ curl -u bankapp:changeit -X POST \
 $ curl -u bankapp:changeit http://localhost:8989/bank-api/customers/1000
 
 # Update customer information
-$ curl -u bankapp:changeit -X PUT \
+$ curl -u bankapp:changeit -X PUT -b cookies.txt -H "X-XSRF-TOKEN: $XSRF" \
   http://localhost:8989/bank-api/customers/1000 \
   -H "Content-Type: application/json" \
   -d '{"firstName":"John","lastName":"Smith","status":"Active"}'
 
 # Delete customer and all associated accounts
-$ curl -u bankapp:changeit -X DELETE \
+$ curl -u bankapp:changeit -X DELETE -b cookies.txt -H "X-XSRF-TOKEN: $XSRF" \
   http://localhost:8989/bank-api/customers/1000
 ```
 
@@ -140,7 +149,7 @@ $ curl -u bankapp:changeit -X DELETE \
 $ curl -u bankapp:changeit http://localhost:8989/bank-api/accounts/3000
 
 # Create new account for existing customer
-$ curl -u bankapp:changeit -X POST \
+$ curl -u bankapp:changeit -X POST -b cookies.txt -H "X-XSRF-TOKEN: $XSRF" \
   http://localhost:8989/bank-api/accounts/add/1001 \
   -H "Content-Type: application/json" \
   -d '{
@@ -164,7 +173,7 @@ $ curl -u bankapp:changeit -X POST \
   }'
 
 # Transfer funds between accounts
-$ curl -u bankapp:changeit -X PUT \
+$ curl -u bankapp:changeit -X PUT -b cookies.txt -H "X-XSRF-TOKEN: $XSRF" \
   http://localhost:8989/bank-api/accounts/transfer/1001 \
   -H "Content-Type: application/json" \
   -d '{
@@ -276,7 +285,6 @@ $ mvn test
 
 - **Lombok**: Reduces boilerplate code (getters, setters, constructors)
 - **Spring Boot DevTools**: Automatic restart during development
-- **H2 Console**: Database inspection at `/h2-console/`
 - **Swagger UI**: API testing at `/swagger-ui.html`
 
 ## Testing
@@ -300,7 +308,6 @@ The application includes Spring Boot integration tests that verify:
 1. Start the application: `mvn spring-boot:run`
 2. Access Swagger UI: <http://localhost:8989/bank-api/swagger-ui.html>
 3. Use the interactive documentation to test API endpoints
-4. Monitor database state via H2 Console: <http://localhost:8989/bank-api/h2-console/>
 
 ## Troubleshooting
 
@@ -310,8 +317,8 @@ The application includes Spring Boot integration tests that verify:
 | ------- | ----- | -------- |
 | Port 8989 already in use | Another app using the port | Change `server.port` or kill process |
 | 401 Unauthorized | Missing or incorrect credentials | Use `bankapp:changeit` for basic auth |
-| H2 Console not accessible | Security configuration issue | Set `spring.h2.console.enabled=true` |
-| Maven build fails | Missing Java 11 | Install Java 11 and set `JAVA_HOME` |
+| 403 Forbidden on writes | Missing CSRF token | See [CSRF Token](#csrf-token) |
+| Maven build fails | Missing Java 17 | Install Java 17 and set `JAVA_HOME` |
 | Swagger UI not loading | Context path configuration | Access via `/bank-api/swagger-ui.html` |
 
 ## Deployment

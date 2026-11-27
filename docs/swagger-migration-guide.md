@@ -149,7 +149,16 @@ Remove the Springfox dependencies and add SpringDoc OpenAPI:
 </dependency>
 ```
 
-**Note**: Version 1.7.0 is the latest stable version compatible with Spring Boot 2.x. For Spring Boot 3.x, use `springdoc-openapi-starter-webmvc-ui` version 2.x.
+**Note**: Version 1.7.0 only works with Spring Boot 2.x (`javax.servlet`). For Spring Boot 3.x use
+`springdoc-openapi-starter-webmvc-ui` 2.x. This project is now on Spring Boot 4 and uses:
+
+```xml
+<dependency>
+    <groupId>org.springdoc</groupId>
+    <artifactId>springdoc-openapi-starter-webmvc-ui</artifactId>
+    <version>3.2.1</version>
+</dependency>
+```
 
 ### Step 2: Update Configuration (ApplicationConfig.java)
 
@@ -344,22 +353,19 @@ After migration, the Swagger UI and API documentation URLs will change:
 
 ## Security Configuration Considerations
 
-The current `SecurityConfig.java` may need updates to allow access to SpringDoc endpoints. Add the following paths to the security configuration:
+Since the Spring Boot 4 upgrade, `SecurityConfig` exposes a `SecurityFilterChain` bean
+(`WebSecurityConfigurerAdapter`, `authorizeRequests()` and `antMatchers()` no longer exist). All paths,
+including the SpringDoc endpoints, are permitted, and CSRF is enabled; Swagger UI sends the token because
+`springdoc.swagger-ui.csrf.enabled` is `true`. To restrict access later, match the SpringDoc paths explicitly:
 
 ```java
-@Override
-protected void configure(HttpSecurity httpSecurity) throws Exception {
-    httpSecurity.authorizeRequests()
-            .antMatchers("/").permitAll()
-            .antMatchers("/h2-console/**").permitAll()
-            // Add SpringDoc paths
-            .antMatchers("/swagger-ui/**").permitAll()
-            .antMatchers("/swagger-ui.html").permitAll()
-            .antMatchers("/v3/api-docs/**").permitAll()
-            .and();
-
-    httpSecurity.csrf().disable();
-    httpSecurity.headers().frameOptions().disable();
+@Bean
+public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
+    http.authorizeHttpRequests(auth -> auth
+                    .requestMatchers("/swagger-ui/**", "/swagger-ui.html", "/v3/api-docs/**").permitAll()
+                    .anyRequest().permitAll())
+            .csrf(csrf -> csrf.spa());
+    return http.build();
 }
 ```
 

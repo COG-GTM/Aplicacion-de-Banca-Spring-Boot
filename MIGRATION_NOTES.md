@@ -1,4 +1,24 @@
-# Java 8 to 11 Migration Notes
+# Migration Notes
+
+## Java 11 to 17 / Spring Boot 2.7 to 4.2
+
+Done to remediate Snyk findings (Spring Boot 2.7 is out of OSS support and most vulnerable
+dependencies have no fix on that line).
+
+- `pom.xml`: Spring Boot parent `4.2.0`, `java.version` `17`; `spring-boot-starter-web` replaced by
+  `spring-boot-starter-webmvc`; `springdoc-openapi-ui` replaced by `springdoc-openapi-starter-webmvc-ui`;
+  JAXB runtime removed (no XML mappings are used).
+- Code: `javax.persistence.*` replaced by `jakarta.persistence.*`; `WebSecurityConfigurerAdapter`
+  replaced by a `SecurityFilterChain` bean with CSRF enabled.
+- Behaviour: POST/PUT/DELETE need the `XSRF-TOKEN` cookie and `X-XSRF-TOKEN` header; the H2 web
+  console is no longer exposed; trailing-slash URLs keep working through `UrlHandlerFilter`.
+- CI: GitHub Actions uses JDK 17.
+- Rollback: revert the whole migration PR (all of its commits, including the `UrlHandlerFilter`
+  bean, which needs Spring Framework 7); Java 11 and Spring Boot 2.7.18 builds then work as before.
+
+The application now requires Java 17 or later to build and run.
+
+# Java 8 to 11 Migration Notes (historical)
 
 ## Overview
 
@@ -150,4 +170,4 @@ If rollback to Java 8 is needed:
 - Documentation updated
 - Migration notes created
 
-The migration is complete and the application is ready for production deployment on Java 11.
+The Java 11 migration was completed; the application has since moved to Java 17 (see above).

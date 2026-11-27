@@ -1,4 +1,4 @@
-# Banking Application using Java 11, Spring Boot, Spring Security and H2 DB
+# Banking Application using Java 17, Spring Boot 4, Spring Security and H2 DB
 
 RESTful API to simulate simple banking operations. 
 
@@ -38,7 +38,7 @@ https://projectlombok.org/setup/eclipse
 
 ### Prerequisites
 
-* Java 11 (LTS) - OpenJDK 11 or later
+* Java 17 (LTS) - OpenJDK 17 or later
 * Spring Tool Suite 4 or similar IDE
 * [Maven](https://maven.apache.org/) - Dependency Management
 
@@ -48,19 +48,20 @@ https://projectlombok.org/setup/eclipse
 spring-boot-starter-actuator
 spring-boot-starter-data-jpa
 spring-boot-starter-security
-spring-boot-starter-web
+spring-boot-starter-webmvc
 spring-boot-devtools
 h2 - Inmemory database
 lombok - to reduce boilerplate code
-springdoc-openapi-ui - API documentation (OpenAPI 3.0)
+springdoc-openapi-starter-webmvc-ui - API documentation (OpenAPI 3.1)
 spring-boot-starter-test
-spring-security-test
+spring-boot-starter-webmvc-test
+spring-boot-starter-security-test
 
 ```
 
 ## API Documentation
 
-Please find the Rest API documentation (OpenAPI 3.0) in the below url
+Please find the Rest API documentation (OpenAPI 3.1) in the below url
 
 ```
 http://localhost:8989/bank-api/swagger-ui.html
@@ -69,12 +70,21 @@ http://localhost:8989/bank-api/swagger-ui.html
 
 ## H2 In-Memory Database
 
-Make sure to use jdbc:h2:mem:testdb as your jdbc url. If you intend to you use custom database name, please
-define datasource properties in application.yml
+The application uses an H2 in-memory database. The H2 web console is no longer exposed: it cannot work
+with CSRF protection enabled, and an unauthenticated database console should not be reachable.
+
+## CSRF Protection
+
+CSRF protection is enabled. The first response to a client without a token sets an `XSRF-TOKEN` cookie;
+keep that cookie and send its value back in the `X-XSRF-TOKEN` header (together with the cookie) on POST,
+PUT and DELETE requests. Swagger UI does this
+automatically. With curl:
 
 ```
-http://localhost:8989/bank-api/h2-console/
-
+curl -c cookies.txt http://localhost:8989/bank-api/customers/all
+curl -b cookies.txt -H "X-XSRF-TOKEN: $(awk '/XSRF-TOKEN/ {print $7}' cookies.txt)" \
+     -H "Content-Type: application/json" -d @src/test/resources/AddCustomer_1000.json \
+     http://localhost:8989/bank-api/customers/add
 ```
 
 ## Testing the Bank APP Rest Api
@@ -86,7 +96,7 @@ http://localhost:8989/bank-api/h2-console/
 
 ## Migration Notes
 
-This application has been migrated from Java 8 to Java 11 (LTS). See `MIGRATION_NOTES.md` for detailed information about the migration process and changes made.
+This application has been migrated from Java 8 to Java 11 (LTS), and later to Java 17 with Spring Boot 4 to remediate Snyk findings. See `MIGRATION_NOTES.md` for detailed information about the migration process and changes made.
 
 ## Authors
 

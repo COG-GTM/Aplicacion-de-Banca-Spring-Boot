@@ -4,8 +4,8 @@ server.servlet.context-path: /bank-api
 spring.security.user.name: bankapp
 spring.security.user.password: changeit
 
-# Enabling H2 Console
-spring:
-  h2:
-    console:
+# Swagger UI reads the XSRF-TOKEN cookie and sends it as the X-XSRF-TOKEN header
+springdoc:
+  swagger-ui:
+    csrf:
       enabled: true
