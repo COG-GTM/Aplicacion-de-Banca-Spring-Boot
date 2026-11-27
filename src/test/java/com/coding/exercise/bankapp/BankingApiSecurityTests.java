@@ -50,6 +50,7 @@ public class BankingApiSecurityTests {
 				.andExpect(status().isCreated());
 
 		mockMvc.perform(get("/customers/1000"))
+				.andExpect(status().isOk())
 				.andExpect(content().string(containsString("John")));
 
 		mockMvc.perform(post("/accounts/add/1000").with(csrf()).contentType(MediaType.APPLICATION_JSON)
@@ -57,6 +58,7 @@ public class BankingApiSecurityTests {
 				.andExpect(status().isCreated());
 
 		mockMvc.perform(get("/accounts/5000"))
+				.andExpect(status().isFound())
 				.andExpect(content().string(containsString("5000")));
 	}
 
